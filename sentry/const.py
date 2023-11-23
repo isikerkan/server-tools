@@ -37,8 +37,6 @@ LOG_LEVEL_MAP = {
     for x in ("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET")
 }
 DEFAULT_LOG_LEVEL = "warn"
-DEFAULT_BREADCRUM_LOG_LEVEL = "info"
-DEFAULT_EVENT_LOG_LEVEL = "error"
 
 ODOO_USER_EXCEPTIONS = [
     "odoo.exceptions.AccessDenied",
@@ -67,20 +65,12 @@ def select_transport(name=DEFAULT_TRANSPORT):
     }.get(name, HttpTransport)
 
 
-def get_log_level(log_level, default):
-    if log_level not in LOG_LEVEL_MAP:
-        log_level = default
-    return LOG_LEVEL_MAP[log_level]
+def get_sentry_logging(level=DEFAULT_LOG_LEVEL):
+    if level not in LOG_LEVEL_MAP:
+        level = DEFAULT_LOG_LEVEL
 
-def get_sentry_logging(config):
-    return LoggingIntegration(
-        level=get_log_level(
-            config.get("sentry_breadcrum_logging_level"), DEFAULT_BREADCRUM_LOG_LEVEL
-        ),
-        event_level=get_log_level(
-            config.get("sentry_event_loggin_level"), DEFAULT_EVENT_LOG_LEVEL
-        ),
-    )
+    return LoggingIntegration(level=LOG_LEVEL_MAP[level], event_level=logging.WARNING)
+
 
 def get_sentry_options():
     return [

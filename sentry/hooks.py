@@ -4,7 +4,6 @@
 import logging
 import warnings
 from collections import abc
-from decimal import Decimal
 
 import odoo.http
 from odoo.service.server import server
@@ -19,11 +18,6 @@ from .logutils import (
 )
 
 _logger = logging.getLogger(__name__)
-TRACES_SAMPLER_OPTION = [
-    "traces_sample_rate_http",
-    "traces_sample_rate_cron",
-    "traces_sample_rate_job",
-]
 HAS_SENTRY_SDK = True
 try:
     import sentry_sdk
@@ -82,28 +76,6 @@ def get_odoo_commit(odoo_dir):
     except InvalidGitRepository:
         _logger.debug("Odoo directory: '%s' not a valid git repository", odoo_dir)
 
-class Sampler:
-    def __init__(self, params):
-        super().__init__()
-        default_rate = params.pop("default_rate", 0)
-        for key in TRACES_SAMPLER_OPTION:
-            setattr(self, key, Decimal(params.get(key, default_rate)))
-
-    def traces_sampler(self, sampling_context):
-        path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
-        op = sampling_context.get("transaction_context", {}).get("op")
-        if path and path.startswith("/longpolling"):
-            return 0
-        elif path and path.startswith("/queue_job"):
-            return self.traces_sample_rate_job
-        elif op == "cron":
-            return self.traces_sample_rate_cron
-        elif op == "http.server":
-            return self.traces_sample_rate_http
-        else:
-            # This case should not happen
-            _logger.warning("No sample rate define for context {}", sampling_context)
-            return 0
 
 def initialize_sentry(config):
     """Setup an instance of :class:`sentry_sdk.Client`.
@@ -149,26 +121,11 @@ def initialize_sentry(config):
     options["before_send"] = before_send
 
     options["integrations"] = [
-        const.get_sentry_logging(config),
+        options["logging_level"],
         ThreadingIntegration(propagate_hub=True),
     ]
     # Remove logging_level, since in sentry_sdk is include in 'integrations'
-
-    sampler_params = {
-        key: config[f"sentry_{key}"]
-        for key in TRACES_SAMPLER_OPTION
-        if config.get(f"sentry_{key}") is not None
-    }
-
-    if options["traces_sample_rate"]:
-        # use traces_sample_rate as default rate
-        sampler_params["default_rate"] = options.pop("traces_sample_rate")
-
-    if sampler_params:
-        # We always use traces_sampler even if only the traces_sample_rate
-        # have been define, because some transaction like longpolling
-        # should be never send and the method traces_sampler can drop them
-        options["traces_sampler"] = Sampler(sampler_params).traces_sampler
+    del options["logging_level"]
 
     client = sentry_sdk.init(**options)
 
