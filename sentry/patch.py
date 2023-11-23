@@ -4,8 +4,6 @@
 
 
 # Monkey patch odoo method in order to track all database
-
-
 import logging
 
 import psycopg2
@@ -32,7 +30,7 @@ except ImportError:  # pragma: no cover
 
 if HAS_SENTRY_SDK:
 
-    _ori_get_request = odoo.http.get_request
+    _ori_get_request = odoo.http.get_default_session
 
     def get_request(self, httprequest):
         request = _ori_get_request(self, httprequest)
@@ -49,7 +47,7 @@ if HAS_SENTRY_SDK:
             scope.set_tag("odoo.db", request.db)
         return request
 
-    odoo.http.get_request = get_request
+    odoo.http.get_default_session = get_request
 
     _ori_execute = Cursor.execute
 
