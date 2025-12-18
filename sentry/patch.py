@@ -92,7 +92,9 @@ def patch_cursor_execute():
         ) as span:
             if hasattr(self, "dbname"):
                 span.set_data("db.name", self.dbname)
-            return _ori_execute(self, query, params=params, log_exceptions=log_exceptions)
+            return _ori_execute(
+                self, query, params=params, log_exceptions=log_exceptions
+            )
 
     Cursor.execute = execute
     _logger.debug("Patched odoo.sql_db.Cursor.execute for Sentry APM")
