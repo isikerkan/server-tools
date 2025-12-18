@@ -69,11 +69,15 @@ def get_sentry_logging(level=DEFAULT_LOG_LEVEL):
     if level not in LOG_LEVEL_MAP:
         level = DEFAULT_LOG_LEVEL
 
-    return LoggingIntegration(level=LOG_LEVEL_MAP[level], event_level=logging.WARNING)
+    return LoggingIntegration(
+        # Gather warnings into breadcrumbs regardless of actual logging level
+        level=logging.WARNING,
+        event_level=LOG_LEVEL_MAP[level],
+    )
 
 
 def get_sentry_options():
-    return [
+    res = [
         SentryOption("dsn", "", str.strip),
         SentryOption("transport", DEFAULT_OPTIONS["transport"], select_transport),
         SentryOption("logging_level", DEFAULT_LOG_LEVEL, get_sentry_logging),
@@ -112,9 +116,15 @@ def get_sentry_options():
             DEFAULT_OPTIONS["traces_sample_rate"],
             to_float_if_defined,
         ),
-        SentryOption(
-            "auto_enabling_integrations",
-            DEFAULT_OPTIONS["auto_enabling_integrations"],
-            None,
-        ),
     ]
+
+    if "auto_enabling_integrations" in DEFAULT_OPTIONS:
+        res.append(
+            SentryOption(
+                "auto_enabling_integrations",
+                DEFAULT_OPTIONS["auto_enabling_integrations"],
+                None,
+            )
+        )
+
+    return res
