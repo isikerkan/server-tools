@@ -37,6 +37,18 @@ LOG_LEVEL_MAP = {
     for x in ("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET")
 }
 DEFAULT_LOG_LEVEL = "warn"
+DEFAULT_BREADCRUMB_LOG_LEVEL = "info"
+DEFAULT_EVENT_LOG_LEVEL = "error"
+
+# APM Sampling rate options for different operation types
+TRACES_SAMPLER_OPTIONS = [
+    "traces_sample_rate_http",
+    "traces_sample_rate_cron",
+    "traces_sample_rate_job",
+]
+DEFAULT_TRACES_SAMPLE_RATE_HTTP = 0.1
+DEFAULT_TRACES_SAMPLE_RATE_CRON = 0.1
+DEFAULT_TRACES_SAMPLE_RATE_JOB = 0.1
 
 ODOO_USER_EXCEPTIONS = [
     "odoo.exceptions.AccessDenied",
@@ -65,6 +77,13 @@ def select_transport(name=DEFAULT_TRANSPORT):
     }.get(name, HttpTransport)
 
 
+def get_log_level(level, default):
+    """Convert a string log level to the corresponding logging constant."""
+    if level not in LOG_LEVEL_MAP:
+        level = default
+    return LOG_LEVEL_MAP.get(level, logging.WARNING)
+
+
 def get_sentry_logging(level=DEFAULT_LOG_LEVEL):
     if level not in LOG_LEVEL_MAP:
         level = DEFAULT_LOG_LEVEL
@@ -73,6 +92,25 @@ def get_sentry_logging(level=DEFAULT_LOG_LEVEL):
         # Gather warnings into breadcrumbs regardless of actual logging level
         level=logging.WARNING,
         event_level=LOG_LEVEL_MAP[level],
+    )
+
+
+def get_sentry_logging_v2(config):
+    """
+    Create LoggingIntegration with separate breadcrumb and event log levels.
+    This allows more granular control over what gets captured.
+    """
+    breadcrumb_level = get_log_level(
+        config.get("sentry_breadcrumb_logging_level"),
+        DEFAULT_BREADCRUMB_LOG_LEVEL,
+    )
+    event_level = get_log_level(
+        config.get("sentry_event_logging_level"),
+        DEFAULT_EVENT_LOG_LEVEL,
+    )
+    return LoggingIntegration(
+        level=breadcrumb_level,
+        event_level=event_level,
     )
 
 
