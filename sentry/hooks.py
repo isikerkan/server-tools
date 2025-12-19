@@ -1,9 +1,11 @@
 # Copyright 2016-2017 Versada <https://versada.eu/>
+# Copyright 2021 Camptocamp SA
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 import logging
 import warnings
 from collections import abc
+from decimal import Decimal
 
 import odoo.http
 from odoo.service.server import server
@@ -30,6 +32,89 @@ except ImportError:  # pragma: no cover
         "Cannot import 'sentry-sdk'.\
                         Please make sure it is installed."
     )  # pragma: no cover
+
+
+class Sampler:
+    """
+    Custom traces sampler for Sentry APM that allows different sampling rates
+    for different types of operations (HTTP requests, cron jobs, queue jobs).
+
+    This enables fine-grained control over which transactions are sent to Sentry,
+    reducing costs while maintaining visibility into critical operations.
+    """
+
+    def __init__(self, config):
+        """
+        Initialize the sampler with configuration values.
+
+        Args:
+            config: Odoo configuration object containing sampling rate settings
+        """
+        self.traces_sample_rate_http = Decimal(
+            str(
+                config.get(
+                    "sentry_traces_sample_rate_http",
+                    const.DEFAULT_TRACES_SAMPLE_RATE_HTTP,
+                )
+            )
+        )
+        self.traces_sample_rate_cron = Decimal(
+            str(
+                config.get(
+                    "sentry_traces_sample_rate_cron",
+                    const.DEFAULT_TRACES_SAMPLE_RATE_CRON,
+                )
+            )
+        )
+        self.traces_sample_rate_job = Decimal(
+            str(
+                config.get(
+                    "sentry_traces_sample_rate_job",
+                    const.DEFAULT_TRACES_SAMPLE_RATE_JOB,
+                )
+            )
+        )
+
+    def traces_sampler(self, sampling_context):
+        """
+        Determine the sampling rate for a given transaction.
+
+        Args:
+            sampling_context: Context information about the transaction
+
+        Returns:
+            float: Sampling rate between 0 and 1
+        """
+        # Get path from WSGI environment
+        wsgi_environ = sampling_context.get("wsgi_environ", {})
+        path = wsgi_environ.get("PATH_INFO", "")
+
+        # Get operation type from transaction context
+        transaction_context = sampling_context.get("transaction_context", {})
+        op = transaction_context.get("op", "")
+
+        # Ignore long-polling requests to avoid noise
+        if path and path.startswith("/longpolling"):
+            return 0
+
+        # Queue job requests
+        if path and path.startswith("/queue_job"):
+            return float(self.traces_sample_rate_job)
+
+        # Cron job transactions
+        if op == "cron":
+            return float(self.traces_sample_rate_cron)
+
+        # HTTP server requests
+        if op == "http.server":
+            return float(self.traces_sample_rate_http)
+
+        # Default: use HTTP rate for unknown operations
+        _logger.debug(
+            "No specific sample rate defined for context: %s, using HTTP rate",
+            sampling_context,
+        )
+        return float(self.traces_sample_rate_http)
 
 
 def before_send(event, hint):
@@ -128,6 +213,16 @@ def initialize_sentry(config):
     # Remove logging_level, since in sentry_sdk is include in 'integrations'
     del options["logging_level"]
 
+    # APM Configuration: Setup custom traces sampler if APM is enabled
+    apm_enabled = config.get("sentry_apm_enabled", False)
+    if apm_enabled:
+        _logger.info("Sentry APM is enabled, configuring traces sampler...")
+        sampler = Sampler(config)
+        options["traces_sampler"] = sampler.traces_sampler
+        # Remove traces_sample_rate if traces_sampler is set
+        # (traces_sampler takes precedence)
+        options.pop("traces_sample_rate", None)
+
     client = sentry_sdk.init(**options)
 
     sentry_sdk.set_tag("include_context", config.get("sentry_include_context", True))
@@ -143,8 +238,15 @@ def initialize_sentry(config):
     # Patch the wsgi server in case of further registration
     odoo.http.Application = SentryWsgiMiddleware(odoo.http.Application)
 
+    # Apply APM patches if enabled
+    if apm_enabled:
+        from .patch import apply_apm_patches
+
+        apply_apm_patches()
+
     with sentry_sdk.new_scope() as scope:
         scope.set_extra("debug", False)
+        scope.set_extra("apm_enabled", apm_enabled)
         sentry_sdk.capture_message("Starting Odoo Server", "info")
 
     return client
