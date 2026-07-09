@@ -1,6 +1,7 @@
 # Copyright 2016-2017 Versada <https://versada.eu/>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 import collections
+import inspect
 import logging
 
 from sentry_sdk import HttpTransport
@@ -49,6 +50,14 @@ LOG_LEVEL_MAP = {
 DEFAULT_LOG_LEVEL = "warn"
 DEFAULT_BREADCRUMB_LOG_LEVEL = "info"
 DEFAULT_EVENT_LOG_LEVEL = "error"
+DEFAULT_LOGS_LEVEL = "info"
+
+# Sentry Logs product: needs sentry-sdk with the enable_logs option and
+# LoggingIntegration(sentry_logs_level=...) forwarding (>= 2.63)
+SUPPORTS_SENTRY_LOGS = "enable_logs" in DEFAULT_OPTIONS and (
+    "sentry_logs_level"
+    in inspect.signature(LoggingIntegration.__init__).parameters
+)
 
 # APM Sampling rate options for different operation types
 TRACES_SAMPLER_OPTIONS = [
@@ -109,15 +118,19 @@ def get_log_level(level, default):
     return LOG_LEVEL_MAP.get(level, logging.WARNING)
 
 
-def get_sentry_logging(level=DEFAULT_LOG_LEVEL):
+def get_sentry_logging(level=DEFAULT_LOG_LEVEL, logs_level=None):
     if level not in LOG_LEVEL_MAP:
         level = DEFAULT_LOG_LEVEL
 
-    return LoggingIntegration(
+    kwargs = {
         # Gather warnings into breadcrumbs regardless of actual logging level
-        level=logging.WARNING,
-        event_level=LOG_LEVEL_MAP[level],
-    )
+        "level": logging.WARNING,
+        "event_level": LOG_LEVEL_MAP[level],
+    }
+    if logs_level is not None and SUPPORTS_SENTRY_LOGS:
+        # Forward stdlib log records at this level to Sentry Logs
+        kwargs["sentry_logs_level"] = get_log_level(logs_level, DEFAULT_LOGS_LEVEL)
+    return LoggingIntegration(**kwargs)
 
 
 def get_sentry_logging_v2(config):

@@ -253,12 +253,27 @@ def initialize_sentry(config):
     options["before_send"] = before_send
     options["before_send_transaction"] = before_send_transaction
 
+    # Remove logging_level, since in sentry_sdk is include in 'integrations'
+    logging_integration = options.pop("logging_level")
+
+    # Sentry Logs: forward stdlib log records as structured logs
+    if config_bool(config, "sentry_logs_enabled"):
+        if const.SUPPORTS_SENTRY_LOGS:
+            options["enable_logs"] = True
+            logging_integration = const.get_sentry_logging(
+                config.get("sentry_logging_level", const.DEFAULT_LOG_LEVEL),
+                logs_level=config.get("sentry_logs_level", const.DEFAULT_LOGS_LEVEL),
+            )
+        else:
+            _logger.warning(
+                "sentry_logs_enabled is set but the installed sentry-sdk "
+                "does not support Sentry Logs (needs >= 2.63)"
+            )
+
     options["integrations"] = [
-        options["logging_level"],
+        logging_integration,
         ThreadingIntegration(propagate_scope=True),
     ]
-    # Remove logging_level, since in sentry_sdk is include in 'integrations'
-    del options["logging_level"]
 
     # APM Configuration: Setup custom traces sampler if APM is enabled
     apm_enabled = config_bool(config, "sentry_apm_enabled")
