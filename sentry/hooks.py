@@ -10,6 +10,7 @@ from decimal import Decimal
 import odoo.http
 from odoo.service.server import server
 from odoo.tools import config as odoo_config
+from odoo.tools import str2bool
 
 from . import const
 from .logutils import (
@@ -20,6 +21,17 @@ from .logutils import (
 )
 
 _logger = logging.getLogger(__name__)
+
+
+def config_bool(config, key, default=False):
+    """Read a boolean from Odoo config; raw config values are strings,
+    so 'false' would otherwise be truthy."""
+    value = config.get(key, default)
+    if isinstance(value, str):
+        return str2bool(value, default)
+    return bool(value)
+
+
 HAS_SENTRY_SDK = True
 try:
     import sentry_sdk
@@ -167,7 +179,7 @@ def initialize_sentry(config):
     :param config: Sentry configuration
     :param client: class used to instantiate the sentry_sdk client.
     """
-    enabled = config.get("sentry_enabled", False)
+    enabled = config_bool(config, "sentry_enabled")
     if not (HAS_SENTRY_SDK and enabled):
         return
     _logger.info("Initializing sentry...")
@@ -208,13 +220,13 @@ def initialize_sentry(config):
 
     options["integrations"] = [
         options["logging_level"],
-        ThreadingIntegration(propagate_hub=True),
+        ThreadingIntegration(propagate_scope=True),
     ]
     # Remove logging_level, since in sentry_sdk is include in 'integrations'
     del options["logging_level"]
 
     # APM Configuration: Setup custom traces sampler if APM is enabled
-    apm_enabled = config.get("sentry_apm_enabled", False)
+    apm_enabled = config_bool(config, "sentry_apm_enabled")
     if apm_enabled:
         _logger.info("Sentry APM is enabled, configuring traces sampler...")
         sampler = Sampler(config)
@@ -225,7 +237,9 @@ def initialize_sentry(config):
 
     client = sentry_sdk.init(**options)
 
-    sentry_sdk.set_tag("include_context", config.get("sentry_include_context", True))
+    sentry_sdk.set_tag(
+        "include_context", config_bool(config, "sentry_include_context", True)
+    )
 
     if exclude_loggers:
         for item in exclude_loggers:
