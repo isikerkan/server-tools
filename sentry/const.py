@@ -163,6 +163,16 @@ def get_sentry_options():
         ),
     ]
 
+    # Profiling: attach performance profiles to sampled transactions
+    if "profiles_sample_rate" in DEFAULT_OPTIONS:
+        res.append(
+            SentryOption(
+                "profiles_sample_rate",
+                DEFAULT_OPTIONS["profiles_sample_rate"],
+                to_float_if_defined,
+            )
+        )
+
     if "auto_enabling_integrations" in DEFAULT_OPTIONS:
         res.append(
             SentryOption(
