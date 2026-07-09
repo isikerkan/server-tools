@@ -71,10 +71,12 @@ class ThrowAwayCache:
         don't swap them all out here.
         """
         self._original_cache = self._transaction.cache
-        # Copy the sets of records, which are popped on recompute but do not
-        # copy the keys because they do not match the original field object
-        # afterwards.
-        self._original_tocompute = defaultdict(OrderedSet)
+        # Also swap out the list of fields to recompute. Their compute methods
+        # may depend on fields in the cache that are not yet flushed, and as is
+        # the case with account.bank.statement.line's _compute_internal_index,
+        # may not be resilient to some of the values (c.q. 'date') missing.
+        self._original_tocompute = self._transaction.tocompute
+        self._transaction.tocompute = defaultdict(OrderedSet)
         for key, value in self._transaction.tocompute.items():
             self._original_tocompute[key] = OrderedSet(value)
         temporary_cache = api.Cache()
@@ -214,7 +216,7 @@ class AuditlogRule(models.Model):
 
     def _patch_method(self, model, method_name, check_attr):
         result = new_method = False
-        model_class = type(model)
+        model_class = model.env.registry[model._name]
         if method_name == "create":
             new_method = self._make_create()
         elif method_name == "read":
@@ -271,15 +273,13 @@ class AuditlogRule(models.Model):
         """Restore original ORM methods of models defined in rules."""
         updated = False
         for rule in self:
-            model_model = self.env[rule.model_id.model or rule.model_model]
+            model_class = self.env.registry[rule.model_id.model or rule.model_model]
             for method in ["create", "read", "write", "unlink", "export_data"]:
                 if getattr(rule, f"log_{method}") and hasattr(
-                    getattr(model_model, method), "origin"
+                    getattr(model_class, method), "origin"
                 ):
-                    setattr(
-                        type(model_model), method, getattr(model_model, method).origin
-                    )
-                    delattr(type(model_model), f"auditlog_ruled_{method}")
+                    delattr(model_class, method)
+                    delattr(model_class, f"auditlog_ruled_{method}")
                     updated = True
         if updated:
             self._update_registry()
