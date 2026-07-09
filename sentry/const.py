@@ -8,6 +8,16 @@ from sentry_sdk.consts import DEFAULT_OPTIONS
 from sentry_sdk.integrations.logging import LoggingIntegration
 
 import odoo.loglevels
+from odoo.tools import str2bool
+
+
+def config_bool(config, key, default=False):
+    """Read a boolean from Odoo config; raw config values are strings,
+    so 'false' would otherwise be truthy."""
+    value = config.get(key, default)
+    if isinstance(value, str):
+        return str2bool(value, default)
+    return bool(value)
 
 
 def split_multiple(string, delimiter=",", strip_chars=None):
@@ -49,6 +59,21 @@ TRACES_SAMPLER_OPTIONS = [
 DEFAULT_TRACES_SAMPLE_RATE_HTTP = 0.1
 DEFAULT_TRACES_SAMPLE_RATE_CRON = 0.1
 DEFAULT_TRACES_SAMPLE_RATE_JOB = 0.1
+
+# High-frequency, low-value paths that are never traced (prefix match).
+# Overridable via the sentry_traces_exclude_paths config key.
+DEFAULT_TRACES_EXCLUDE_PATHS = ",".join(
+    [
+        "/longpolling",
+        "/websocket",
+        "/web/assets",
+        "/web/static",
+        "/web/image",
+        "/web/content",
+        "/favicon.ico",
+        "/robots.txt",
+    ]
+)
 
 ODOO_USER_EXCEPTIONS = [
     "odoo.exceptions.AccessDenied",
