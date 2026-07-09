@@ -19,7 +19,14 @@ _logger = logging.getLogger(__name__)
 HAS_SENTRY_SDK = True
 try:
     import sentry_sdk
-    from sentry_sdk.tracing import TRANSACTION_SOURCE_ROUTE
+
+    try:
+        # sentry-sdk >= 2.23: enum replaces the removed string constants
+        from sentry_sdk.tracing import TransactionSource
+
+        TRANSACTION_SOURCE_ROUTE = TransactionSource.ROUTE
+    except ImportError:
+        from sentry_sdk.tracing import TRANSACTION_SOURCE_ROUTE
 
     # sentry-sdk >= 2.15 renamed the span `description` kwarg to `name`
     # and warns on the old one
@@ -155,14 +162,16 @@ def patch_cron_job():
 
     @classmethod
     def _process_job(cls, db, cron_cr, job):
-        cron_name = job.get("cron_name", "unknown").replace(" ", "_")
+        # job values can be NULL in the database, so .get() defaults
+        # are not enough
+        cron_name = job.get("cron_name") or "unknown"
         with sentry_sdk.start_transaction(
             op="cron",
-            name=f"Cron: {cron_name}",
+            name=f"Cron: {cron_name.replace(' ', '_')}",
             source=TRANSACTION_SOURCE_ROUTE,
         ) as transaction:
-            transaction.set_tag("odoo.cron.name", job.get("cron_name", "unknown"))
-            transaction.set_tag("odoo.cron.id", job.get("id", "unknown"))
+            transaction.set_tag("odoo.cron.name", cron_name)
+            transaction.set_tag("odoo.cron.id", job.get("id") or "unknown")
             if hasattr(cron_cr, "dbname"):
                 transaction.set_tag("odoo.db", cron_cr.dbname)
             return _ori_process_job.__func__(cls, db, cron_cr, job)
