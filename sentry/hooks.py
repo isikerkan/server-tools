@@ -253,17 +253,17 @@ def initialize_sentry(config):
     options["before_send"] = before_send
     options["before_send_transaction"] = before_send_transaction
 
-    # Remove logging_level, since in sentry_sdk is include in 'integrations'
-    logging_integration = options.pop("logging_level")
+    # Remove logging_level, the integration is rebuilt below from the
+    # sentry_logging_level / sentry_breadcrumb_logging_level /
+    # sentry_event_logging_level keys
+    del options["logging_level"]
 
     # Sentry Logs: forward stdlib log records as structured logs
+    logs_level = None
     if config_bool(config, "sentry_logs_enabled"):
         if const.SUPPORTS_SENTRY_LOGS:
             options["enable_logs"] = True
-            logging_integration = const.get_sentry_logging(
-                config.get("sentry_logging_level", const.DEFAULT_LOG_LEVEL),
-                logs_level=config.get("sentry_logs_level", const.DEFAULT_LOGS_LEVEL),
-            )
+            logs_level = config.get("sentry_logs_level", const.DEFAULT_LOGS_LEVEL)
         else:
             _logger.warning(
                 "sentry_logs_enabled is set but the installed sentry-sdk "
@@ -271,7 +271,7 @@ def initialize_sentry(config):
             )
 
     options["integrations"] = [
-        logging_integration,
+        const.get_logging_integration(config, logs_level=logs_level),
         ThreadingIntegration(propagate_scope=True),
     ]
 

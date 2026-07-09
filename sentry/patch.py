@@ -55,6 +55,10 @@ except ImportError:
 _PATCHES_APPLIED = False
 # Set from config by apply_apm_patches()
 _METRICS_ENABLED = False
+_ORM_ENABLED = False
+
+# ORM methods traced when sentry_trace_orm is enabled
+ORM_TRACED_METHODS = ("create", "write", "unlink", "read", "_search")
 
 # Numeric path segments (record ids, attachment ids, ...) would explode
 # metric attribute cardinality
@@ -265,6 +269,50 @@ def patch_cron_job():
     _logger.debug("Patched ir_cron._process_job for Sentry APM")
 
 
+def patch_orm():
+    """
+    Monkey-patch BaseModel CRUD/search methods to create ORM-level spans.
+    Gives Sentry semantic visibility (model + operation) on top of the
+    raw SQL spans. Opt-in via sentry_trace_orm: it adds a wrapper call
+    to some of the hottest methods in Odoo.
+    """
+    if not HAS_SENTRY_SDK:
+        return
+
+    import functools
+
+    try:
+        from odoo.models import BaseModel
+    except ImportError:
+        _logger.warning("Could not import BaseModel for ORM APM patching")
+        return
+
+    def make_wrapper(method_name, original):
+        # functools.wraps also copies __dict__, preserving the _api
+        # attribute Odoo's call_kw dispatching relies on
+        @functools.wraps(original)
+        def wrapper(self, *args, **kwargs):
+            current = sentry_sdk.get_current_span()
+            if current is None or not current.sampled:
+                return original(self, *args, **kwargs)
+            span_kwargs = {_SPAN_NAME_KWARG: f"{self._name}.{method_name}"}
+            with sentry_sdk.start_span(op="odoo.orm", **span_kwargs) as span:
+                span.set_data("odoo.model", self._name)
+                span.set_data("odoo.method", method_name)
+                return original(self, *args, **kwargs)
+
+        return wrapper
+
+    for method_name in ORM_TRACED_METHODS:
+        original = getattr(BaseModel, method_name, None)
+        if original is None:
+            _logger.debug("BaseModel.%s not found, skipping", method_name)
+            continue
+        setattr(BaseModel, method_name, make_wrapper(method_name, original))
+
+    _logger.debug("Patched BaseModel ORM methods for Sentry APM")
+
+
 def patch_queue_job():
     """
     Monkey-patch the queue_job module (if installed) to add Sentry tags
@@ -303,7 +351,7 @@ def apply_apm_patches(config=None):
     Apply all APM monkey-patches to instrument Odoo for Sentry performance
     monitoring. Idempotent: safe to call more than once per process.
     """
-    global _PATCHES_APPLIED, _METRICS_ENABLED
+    global _PATCHES_APPLIED, _METRICS_ENABLED, _ORM_ENABLED
 
     if config is not None:
         from .const import config_bool
@@ -311,6 +359,7 @@ def apply_apm_patches(config=None):
         _METRICS_ENABLED = config_bool(
             config, "sentry_metrics_enabled", sentry_metrics is not None
         ) and (sentry_metrics is not None)
+        _ORM_ENABLED = config_bool(config, "sentry_trace_orm")
 
     if _PATCHES_APPLIED:
         _logger.debug("Sentry APM patches already applied, skipping")
@@ -321,5 +370,7 @@ def apply_apm_patches(config=None):
     patch_cursor_execute()
     patch_cron_job()
     patch_queue_job()
+    if _ORM_ENABLED:
+        patch_orm()
     _PATCHES_APPLIED = True
     _logger.info("Sentry APM patches applied successfully")
