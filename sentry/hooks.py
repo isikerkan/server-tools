@@ -8,9 +8,7 @@ from collections import abc
 from decimal import Decimal
 
 import odoo.http
-from odoo.service.server import server
 from odoo.tools import config as odoo_config
-from odoo.tools import str2bool
 
 from . import const
 from .logutils import (
@@ -22,15 +20,7 @@ from .logutils import (
 
 _logger = logging.getLogger(__name__)
 
-
-def config_bool(config, key, default=False):
-    """Read a boolean from Odoo config; raw config values are strings,
-    so 'false' would otherwise be truthy."""
-    value = config.get(key, default)
-    if isinstance(value, str):
-        return str2bool(value, default)
-    return bool(value)
-
+config_bool = const.config_bool
 
 HAS_SENTRY_SDK = True
 try:
@@ -62,27 +52,43 @@ class Sampler:
         Args:
             config: Odoo configuration object containing sampling rate settings
         """
-        self.traces_sample_rate_http = Decimal(
-            str(
-                config.get(
-                    "sentry_traces_sample_rate_http",
-                    const.DEFAULT_TRACES_SAMPLE_RATE_HTTP,
+        # Rates are parsed once here; traces_sampler runs on every
+        # transaction and must stay allocation-free.
+        self.traces_sample_rate_http = float(
+            Decimal(
+                str(
+                    config.get(
+                        "sentry_traces_sample_rate_http",
+                        const.DEFAULT_TRACES_SAMPLE_RATE_HTTP,
+                    )
                 )
             )
         )
-        self.traces_sample_rate_cron = Decimal(
-            str(
-                config.get(
-                    "sentry_traces_sample_rate_cron",
-                    const.DEFAULT_TRACES_SAMPLE_RATE_CRON,
+        self.traces_sample_rate_cron = float(
+            Decimal(
+                str(
+                    config.get(
+                        "sentry_traces_sample_rate_cron",
+                        const.DEFAULT_TRACES_SAMPLE_RATE_CRON,
+                    )
                 )
             )
         )
-        self.traces_sample_rate_job = Decimal(
-            str(
+        self.traces_sample_rate_job = float(
+            Decimal(
+                str(
+                    config.get(
+                        "sentry_traces_sample_rate_job",
+                        const.DEFAULT_TRACES_SAMPLE_RATE_JOB,
+                    )
+                )
+            )
+        )
+        self.exclude_paths = tuple(
+            const.split_multiple(
                 config.get(
-                    "sentry_traces_sample_rate_job",
-                    const.DEFAULT_TRACES_SAMPLE_RATE_JOB,
+                    "sentry_traces_exclude_paths",
+                    const.DEFAULT_TRACES_EXCLUDE_PATHS,
                 )
             )
         )
@@ -97,6 +103,12 @@ class Sampler:
         Returns:
             float: Sampling rate between 0 and 1
         """
+        # Respect an upstream sampling decision (distributed tracing):
+        # keep traces complete across services
+        parent_sampled = sampling_context.get("parent_sampled")
+        if parent_sampled is not None:
+            return 1.0 if parent_sampled else 0.0
+
         # Get path from WSGI environment
         wsgi_environ = sampling_context.get("wsgi_environ", {})
         path = wsgi_environ.get("PATH_INFO", "")
@@ -105,28 +117,20 @@ class Sampler:
         transaction_context = sampling_context.get("transaction_context", {})
         op = transaction_context.get("op", "")
 
-        # Ignore long-polling requests to avoid noise
-        if path and path.startswith("/longpolling"):
-            return 0
+        # High-frequency, low-value paths: assets, websocket, statics, ...
+        if path and path.startswith(self.exclude_paths):
+            return 0.0
 
         # Queue job requests
         if path and path.startswith("/queue_job"):
-            return float(self.traces_sample_rate_job)
+            return self.traces_sample_rate_job
 
         # Cron job transactions
         if op == "cron":
-            return float(self.traces_sample_rate_cron)
+            return self.traces_sample_rate_cron
 
-        # HTTP server requests
-        if op == "http.server":
-            return float(self.traces_sample_rate_http)
-
-        # Default: use HTTP rate for unknown operations
-        _logger.debug(
-            "No specific sample rate defined for context: %s, using HTTP rate",
-            sampling_context,
-        )
-        return float(self.traces_sample_rate_http)
+        # HTTP server requests and default for unknown operations
+        return self.traces_sample_rate_http
 
 
 def before_send(event, hint):
@@ -161,6 +165,36 @@ def before_send(event, hint):
     raven_processor = SanitizeOdooCookiesProcessor()
     raven_processor.process(event)
 
+    return event
+
+
+def _wrap_wsgi_application():
+    """Patch ``odoo.http.Application.__call__`` so every WSGI request
+    runs through SentryWsgiMiddleware, regardless of server mode or of
+    when this module was loaded. Idempotent."""
+    import functools
+
+    Application = odoo.http.Application
+    if getattr(Application, "_sentry_wsgi_patched", False):
+        return
+
+    _ori_call = Application.__call__
+
+    def __call__(self, environ, start_response):
+        middleware = getattr(self, "_sentry_wsgi_middleware", None)
+        if middleware is None:
+            middleware = SentryWsgiMiddleware(functools.partial(_ori_call, self))
+            self._sentry_wsgi_middleware = middleware
+        return middleware(environ, start_response)
+
+    Application.__call__ = __call__
+    Application._sentry_wsgi_patched = True
+
+
+def before_send_transaction(event, hint):
+    """Sanitize sensitive data (cookies, passwords) on APM transaction
+    events; ``before_send`` only applies to error events."""
+    SanitizeOdooCookiesProcessor().process(event)
     return event
 
 
@@ -217,6 +251,7 @@ def initialize_sentry(config):
     del options["ignore_exceptions"]
 
     options["before_send"] = before_send
+    options["before_send_transaction"] = before_send_transaction
 
     options["integrations"] = [
         options["logging_level"],
@@ -245,18 +280,20 @@ def initialize_sentry(config):
         for item in exclude_loggers:
             ignore_logger(item)
 
-    # The server app is already registered so patch it here
-    if server:
-        server.app = SentryWsgiMiddleware(server.app)
-
-    # Patch the wsgi server in case of further registration
-    odoo.http.Application = SentryWsgiMiddleware(odoo.http.Application)
+    # Wrap the WSGI entry point at the Application class level. This
+    # works in every server mode (threaded, prefork, gevent) and also
+    # when this module is loaded via server_wide_modules, i.e. before
+    # odoo.service.server.server exists. Replacing odoo.http.root or
+    # server.app instead would miss modes where the singleton was
+    # already handed to the server, and replacing the root object would
+    # break attribute access like root.nodb_routing_map.
+    _wrap_wsgi_application()
 
     # Apply APM patches if enabled
     if apm_enabled:
         from .patch import apply_apm_patches
 
-        apply_apm_patches()
+        apply_apm_patches(config)
 
     with sentry_sdk.new_scope() as scope:
         scope.set_extra("debug", False)
