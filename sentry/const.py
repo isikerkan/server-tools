@@ -138,18 +138,32 @@ def get_sentry_logging_v2(config):
     Create LoggingIntegration with separate breadcrumb and event log levels.
     This allows more granular control over what gets captured.
     """
+    return get_logging_integration(config)
+
+
+def get_logging_integration(config, logs_level=None):
+    """
+    Build the LoggingIntegration from Odoo config:
+
+    - sentry_breadcrumb_logging_level: breadcrumb level (default info)
+    - sentry_event_logging_level: error-event level; falls back to the
+      legacy sentry_logging_level key (default warn)
+    - logs_level: forward stdlib records at this level to Sentry Logs
+      (only if the SDK supports it)
+    """
     breadcrumb_level = get_log_level(
         config.get("sentry_breadcrumb_logging_level"),
         DEFAULT_BREADCRUMB_LOG_LEVEL,
     )
     event_level = get_log_level(
-        config.get("sentry_event_logging_level"),
-        DEFAULT_EVENT_LOG_LEVEL,
+        config.get("sentry_event_logging_level")
+        or config.get("sentry_logging_level"),
+        DEFAULT_LOG_LEVEL,
     )
-    return LoggingIntegration(
-        level=breadcrumb_level,
-        event_level=event_level,
-    )
+    kwargs = {"level": breadcrumb_level, "event_level": event_level}
+    if logs_level is not None and SUPPORTS_SENTRY_LOGS:
+        kwargs["sentry_logs_level"] = get_log_level(logs_level, DEFAULT_LOGS_LEVEL)
+    return LoggingIntegration(**kwargs)
 
 
 def get_sentry_options():
