@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Injects the Sentry Browser SDK loader into every web page when
+        the ir.config_parameter `sentry.browser_loader_url` is set.
+
+        Session Replay (and browser-side error/performance capture) can
+        only be recorded by the JavaScript SDK in the user's browser -
+        the Python SDK has no access to the DOM. Configure the loader in
+        Sentry: Settings -> Projects -> Loader Script (enable Session
+        Replay and pick sample rates there), then store its URL in the
+        system parameter. Leave the parameter empty to disable.
+    -->
+    <template
+        id="sentry_browser_loader"
+        inherit_id="web.layout"
+        name="Sentry Browser SDK / Session Replay"
+    >
+        <xpath expr="//head" position="inside">
+            <t
+                t-set="sentry_browser_loader_url"
+                t-value="request and request.env['ir.config_parameter'].sudo().get_param('sentry.browser_loader_url')"
+            />
+            <script
+                t-if="sentry_browser_loader_url"
+                t-att-src="sentry_browser_loader_url"
+                crossorigin="anonymous"
+            />
+        </xpath>
+    </template>
+</odoo>

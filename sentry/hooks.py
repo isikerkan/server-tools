@@ -310,6 +310,13 @@ def initialize_sentry(config):
 
         apply_apm_patches(config)
 
+    # Optional host/database gauges (CPU, RAM, disk, network, db
+    # connections/size) emitted by a background thread
+    if config_bool(config, "sentry_system_metrics_enabled"):
+        from .sysmetrics import start_system_metrics
+
+        start_system_metrics(config)
+
     with sentry_sdk.new_scope() as scope:
         scope.set_extra("debug", False)
         scope.set_extra("apm_enabled", apm_enabled)
