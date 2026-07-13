@@ -190,6 +190,20 @@ the system parameter ``sentry.browser_loader_url`` (Settings → Technical
 loader also enables browser-side error and performance capture, so
 backend traces and frontend replays are linked.
 
+The Loader ships with a fixed 10% session sample rate. Two optional
+system parameters override the rates client-side (parsed in the browser;
+invalid values fall back to the defaults):
+
++---------------------------------------+-----------------------------+---------+
+| System parameter                      | Description                 | Default |
++=======================================+=============================+=========+
+| ``sentry.replay_session_sample_rate`` | Fraction of sessions        | ``0.1`` |
+|                                       | recorded (0.0 to 1.0)       |         |
++---------------------------------------+-----------------------------+---------+
+| ``sentry.replay_error_sample_rate``   | Fraction of error sessions  | ``1.0`` |
+|                                       | recorded (0.0 to 1.0)       |         |
++---------------------------------------+-----------------------------+---------+
+
 Example Odoo configuration
 --------------------------
 
