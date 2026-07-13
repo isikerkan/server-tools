@@ -35,6 +35,7 @@ try:
     # sentry-sdk >= 2.15 renamed the span `description` kwarg to `name`
     # and warns on the old one
     import inspect as _inspect
+
     from sentry_sdk.tracing import Span as _Span
 
     _SPAN_NAME_KWARG = (
