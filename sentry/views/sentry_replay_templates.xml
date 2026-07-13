@@ -21,11 +21,30 @@
                 t-set="sentry_browser_loader_url"
                 t-value="request and request.env['ir.config_parameter'].sudo().get_param('sentry.browser_loader_url')"
             />
-            <script
-                t-if="sentry_browser_loader_url"
-                t-att-src="sentry_browser_loader_url"
-                crossorigin="anonymous"
-            />
+            <t t-if="sentry_browser_loader_url">
+                <t
+                    t-set="sentry_replay_session_rate"
+                    t-value="request.env['ir.config_parameter'].sudo().get_param('sentry.replay_session_sample_rate')"
+                />
+                <t
+                    t-set="sentry_replay_error_rate"
+                    t-value="request.env['ir.config_parameter'].sudo().get_param('sentry.replay_error_sample_rate')"
+                />
+                <!-- The loader defaults to a 10% session sample rate;
+                     override it via the sentry.replay_*_sample_rate
+                     system parameters (values 0.0 to 1.0) -->
+                <script t-if="sentry_replay_session_rate or sentry_replay_error_rate">
+window.sentryOnLoad = function () {
+    Sentry.init({
+        replaysSessionSampleRate: <t
+                    t-out="float(sentry_replay_session_rate or 0.1)"
+                />,
+        replaysOnErrorSampleRate: <t t-out="float(sentry_replay_error_rate or 1.0)" />,
+    });
+};
+                </script>
+                <script t-att-src="sentry_browser_loader_url" crossorigin="anonymous" />
+            </t>
         </xpath>
     </template>
 </odoo>
