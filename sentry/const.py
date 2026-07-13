@@ -55,8 +55,7 @@ DEFAULT_LOGS_LEVEL = "info"
 # Sentry Logs product: needs sentry-sdk with the enable_logs option and
 # LoggingIntegration(sentry_logs_level=...) forwarding (>= 2.63)
 SUPPORTS_SENTRY_LOGS = "enable_logs" in DEFAULT_OPTIONS and (
-    "sentry_logs_level"
-    in inspect.signature(LoggingIntegration.__init__).parameters
+    "sentry_logs_level" in inspect.signature(LoggingIntegration.__init__).parameters
 )
 
 # APM Sampling rate options for different operation types
@@ -156,8 +155,7 @@ def get_logging_integration(config, logs_level=None):
         DEFAULT_BREADCRUMB_LOG_LEVEL,
     )
     event_level = get_log_level(
-        config.get("sentry_event_logging_level")
-        or config.get("sentry_logging_level"),
+        config.get("sentry_event_logging_level") or config.get("sentry_logging_level"),
         DEFAULT_LOG_LEVEL,
     )
     kwargs = {"level": breadcrumb_level, "event_level": event_level}
