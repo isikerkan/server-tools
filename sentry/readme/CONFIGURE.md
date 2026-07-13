@@ -73,6 +73,15 @@ Technical → System Parameters). Remove the parameter to disable the
 injection. The loader also enables browser-side error and performance
 capture, so backend traces and frontend replays are linked.
 
+The Loader ships with a fixed 10% session sample rate. Two optional
+system parameters override the rates client-side (parsed in the
+browser; invalid values fall back to the defaults):
+
+| System parameter | Description | Default |
+|------------------|-------------|---------|
+| `sentry.replay_session_sample_rate` | Fraction of sessions recorded (0.0 to 1.0) | `0.1` |
+| `sentry.replay_error_sample_rate` | Fraction of error sessions recorded (0.0 to 1.0) | `1.0` |
+
 ## Example Odoo configuration
 
 Below is an example of Odoo configuration file with *Odoo Sentry*

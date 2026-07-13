@@ -7,4 +7,5 @@ from . import (
     test_processor,
     test_generalutils,
     test_sampler,
+    test_sysmetrics,
 )

@@ -32,14 +32,21 @@
                 />
                 <!-- The loader defaults to a 10% session sample rate;
                      override it via the sentry.replay_*_sample_rate
-                     system parameters (values 0.0 to 1.0) -->
+                     system parameters (values 0.0 to 1.0). Parsing
+                     happens in the browser so an invalid parameter
+                     falls back to the defaults instead of breaking
+                     page rendering. -->
                 <script t-if="sentry_replay_session_rate or sentry_replay_error_rate">
 window.sentryOnLoad = function () {
+    var sessionRate = parseFloat(<t
+                    t-out="json.dumps(sentry_replay_session_rate or '')"
+                />);
+    var errorRate = parseFloat(<t
+                    t-out="json.dumps(sentry_replay_error_rate or '')"
+                />);
     Sentry.init({
-        replaysSessionSampleRate: <t
-                    t-out="float(sentry_replay_session_rate or 0.1)"
-                />,
-        replaysOnErrorSampleRate: <t t-out="float(sentry_replay_error_rate or 1.0)" />,
+        replaysSessionSampleRate: isNaN(sessionRate) ? 0.1 : sessionRate,
+        replaysOnErrorSampleRate: isNaN(errorRate) ? 1.0 : errorRate,
     });
 };
                 </script>
