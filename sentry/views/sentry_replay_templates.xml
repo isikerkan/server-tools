@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!--
+        Injects the Sentry Browser SDK loader into every web page when
+        the ir.config_parameter `sentry.browser_loader_url` is set.
+
+        Session Replay (and browser-side error/performance capture) can
+        only be recorded by the JavaScript SDK in the user's browser -
+        the Python SDK has no access to the DOM. Configure the loader in
+        Sentry: Settings -> Projects -> Loader Script (enable Session
+        Replay and pick sample rates there), then store its URL in the
+        system parameter. Leave the parameter empty to disable.
+    -->
+    <template
+        id="sentry_browser_loader"
+        inherit_id="web.layout"
+        name="Sentry Browser SDK / Session Replay"
+    >
+        <xpath expr="//head" position="inside">
+            <t
+                t-set="sentry_browser_loader_url"
+                t-value="request and request.env['ir.config_parameter'].sudo().get_param('sentry.browser_loader_url')"
+            />
+            <t t-if="sentry_browser_loader_url">
+                <t
+                    t-set="sentry_replay_session_rate"
+                    t-value="request.env['ir.config_parameter'].sudo().get_param('sentry.replay_session_sample_rate')"
+                />
+                <t
+                    t-set="sentry_replay_error_rate"
+                    t-value="request.env['ir.config_parameter'].sudo().get_param('sentry.replay_error_sample_rate')"
+                />
+                <!-- The loader defaults to a 10% session sample rate;
+                     override it via the sentry.replay_*_sample_rate
+                     system parameters (values 0.0 to 1.0). The raw
+                     values are passed as data attributes (plain XML
+                     attribute escaping, no code generation) and parsed
+                     in the browser, so an invalid parameter falls back
+                     to the defaults instead of breaking page
+                     rendering. -->
+                <script
+                    t-if="sentry_replay_session_rate or sentry_replay_error_rate"
+                    t-att-data-session-rate="sentry_replay_session_rate"
+                    t-att-data-error-rate="sentry_replay_error_rate"
+                >
+(function () {
+    var data = document.currentScript.dataset;
+    var sessionRate = parseFloat(data.sessionRate);
+    var errorRate = parseFloat(data.errorRate);
+    window.sentryOnLoad = function () {
+        Sentry.init({
+            replaysSessionSampleRate: isNaN(sessionRate) ? 0.1 : sessionRate,
+            replaysOnErrorSampleRate: isNaN(errorRate) ? 1.0 : errorRate,
+        });
+    };
+})();
+                </script>
+                <script t-att-src="sentry_browser_loader_url" crossorigin="anonymous" />
+            </t>
+        </xpath>
+    </template>
+</odoo>

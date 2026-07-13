@@ -53,17 +53,13 @@ class TestSampler(TransactionCase):
             "/favicon.ico",
             "/robots.txt",
         ):
-            self.assertEqual(
-                self.sampler.traces_sampler(http_context(path)), 0.0, path
-            )
+            self.assertEqual(self.sampler.traces_sampler(http_context(path)), 0.0, path)
 
     def test_exclude_paths_configurable(self):
         sampler = Sampler(make_config({"sentry_traces_exclude_paths": "/custom"}))
         self.assertEqual(sampler.traces_sampler(http_context("/custom/x")), 0.0)
         # default exclusions replaced by the custom list
-        self.assertEqual(
-            sampler.traces_sampler(http_context("/web/assets/y.css")), 0.5
-        )
+        self.assertEqual(sampler.traces_sampler(http_context("/web/assets/y.css")), 0.5)
 
     def test_parent_sampled_respected(self):
         sampler = self.sampler
