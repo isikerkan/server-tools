@@ -216,6 +216,13 @@ def initialize_sentry(config):
     enabled = config_bool(config, "sentry_enabled")
     if not (HAS_SENTRY_SDK and enabled):
         return
+    # Test runs raise expected exceptions constantly; sending them would
+    # flood the Sentry project. Opt back in with sentry_enable_in_tests.
+    if config_bool(config, "test_enable") and not config_bool(
+        config, "sentry_enable_in_tests"
+    ):
+        _logger.info("Sentry disabled while running tests")
+        return
     _logger.info("Initializing sentry...")
     if config.get("sentry_odoo_dir") and config.get("sentry_release"):
         _logger.debug(

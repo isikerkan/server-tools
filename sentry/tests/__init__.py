@@ -8,4 +8,5 @@ from . import (
     test_generalutils,
     test_sampler,
     test_sysmetrics,
+    test_test_mode,
 )
