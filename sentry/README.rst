@@ -199,9 +199,14 @@ Cron Monitoring (Sentry Crons)
 +--------------------------------------+-----------------------------------------------+-----------+
 
 Queue jobs themselves have no schedule, so they cannot be individual
-Crons monitors; the jobrunner heartbeat plus backlog gauges cover the
-operational questions instead (is the runner alive, is the queue
+Sentry Crons monitors; the jobrunner heartbeat plus backlog gauges cover
+the operational questions instead (is the runner alive, is the queue
 draining). The heartbeat uses one monitor (``odoo-queue-jobrunner``).
+
+Check-ins report the real job outcome: a run that Odoo marks as failed
+closes its check-in with the error status, even though the exception
+never leaves Odoo's cron machinery. Missed and overlong runs are
+detected by the monitor schedule and its max_runtime.
 
 Runtime overhead is negligible (two asynchronous envelopes per run), but
 every monitored cron counts against the Sentry Crons monitor quota of
