@@ -61,6 +61,13 @@ cursor and are tagged per database.
 
 Loggers listed in `sentry_exclude_loggers` are also excluded from Logs.
 
+## Test runs
+
+When Odoo runs with `--test-enable`, Sentry is not initialized: test
+suites raise expected exceptions constantly and would flood the
+project with noise. Set `sentry_enable_in_tests = true` to opt back in
+(e.g. to test the integration itself).
+
 ## Session Replay (browser)
 
 Session Replay records the user's browser session and therefore can

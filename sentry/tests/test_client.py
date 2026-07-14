@@ -103,7 +103,9 @@ class TestClientSetup(TransactionCase):
         """
         _config_patcher = patch.dict(
             in_dict=config.options,
-            values=options,
+            # these tests exercise the integration itself, so opt out of
+            # the initialize-nothing-during-test-runs guard
+            values={"sentry_enable_in_tests": True, **options},
         )
         _config_patcher.start()
         self.addCleanup(_config_patcher.stop)
