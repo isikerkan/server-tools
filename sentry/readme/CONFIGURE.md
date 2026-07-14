@@ -61,6 +61,30 @@ cursor and are tagged per database.
 
 Loggers listed in `sentry_exclude_loggers` are also excluded from Logs.
 
+## Cron Monitoring (Sentry Crons)
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `sentry_cron_monitors_enabled` | Send a Sentry Crons check-in for every ir.cron run; monitors and their schedules are upserted automatically from the cron's interval, so missed, late and failed runs alert without any setup in Sentry | `false` |
+| `sentry_cron_monitors_include` | Comma-separated list of cron names to monitor; empty means all crons | all |
+| `sentry_queue_job_monitor_enabled` | OCA queue_job monitoring: a Crons heartbeat for the jobrunner thread (missed check-in = dead runner) plus per-database backlog gauges `queue_job.pending/enqueued/started/failed` | `false` |
+
+Queue jobs themselves have no schedule, so they cannot be individual
+Sentry Crons monitors; the jobrunner heartbeat plus backlog gauges cover the
+operational questions instead (is the runner alive, is the queue
+draining). The heartbeat uses one monitor (`odoo-queue-jobrunner`).
+
+Check-ins report the real job outcome: a run that Odoo marks as failed
+closes its check-in with the error status, even though the exception
+never leaves Odoo's cron machinery. Missed and overlong runs are
+detected by the monitor schedule and its max_runtime.
+
+Runtime overhead is negligible (two asynchronous envelopes per run),
+but every monitored cron counts against the Sentry Crons monitor quota
+of your plan - on instances with many frequent crons, use the include
+list to monitor only the business-critical ones. Monitor slugs are
+prefixed with the database name.
+
 ## Test runs
 
 When Odoo runs with `--test-enable`, Sentry is not initialized: test

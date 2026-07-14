@@ -13,6 +13,8 @@ class TestSystemMetrics(TransactionCase):
         super().setUp()
         # never leave a collector thread reference behind
         self.addCleanup(setattr, sysmetrics, "_collector_thread", None)
+        self.addCleanup(setattr, sysmetrics, "_SYSTEM_ENABLED", False)
+        self.addCleanup(setattr, sysmetrics, "_QUEUE_ENABLED", False)
         sysmetrics._collector_thread = None
 
     def _started_interval(self, config):
@@ -20,7 +22,9 @@ class TestSystemMetrics(TransactionCase):
         it was invoked with."""
         loop = patch.object(sysmetrics, "_collector_loop").start()
         self.addCleanup(patch.stopall)
-        sysmetrics.start_system_metrics(config)
+        sysmetrics.start_system_metrics(
+            {"sentry_system_metrics_enabled": "true", **config}
+        )
         thread = sysmetrics._collector_thread
         self.assertIsNotNone(thread)
         self.assertTrue(thread.daemon)
@@ -44,19 +48,36 @@ class TestSystemMetrics(TransactionCase):
 
     def test_idempotent_while_running(self):
         release = threading.Event()
+        enabled = {"sentry_system_metrics_enabled": "true"}
         with patch.object(
             sysmetrics,
             "_collector_loop",
             side_effect=lambda interval, stop: release.wait(10),
         ):
-            sysmetrics.start_system_metrics({})
+            sysmetrics.start_system_metrics(enabled)
             first = sysmetrics._collector_thread
-            sysmetrics.start_system_metrics({})
+            sysmetrics.start_system_metrics(enabled)
             self.assertIs(sysmetrics._collector_thread, first)
             release.set()
             first.join(5)
 
     def test_noop_without_metrics_support(self):
         with patch.object(sysmetrics, "sentry_metrics", None):
-            sysmetrics.start_system_metrics({})
+            sysmetrics.start_system_metrics({"sentry_system_metrics_enabled": "true"})
         self.assertIsNone(sysmetrics._collector_thread)
+
+    def test_noop_when_nothing_enabled(self):
+        sysmetrics.start_system_metrics({})
+        self.assertIsNone(sysmetrics._collector_thread)
+
+    def test_queue_monitor_alone_starts_collector(self):
+        interval_config = {"sentry_queue_job_monitor_enabled": "true"}
+        loop = patch.object(sysmetrics, "_collector_loop").start()
+        self.addCleanup(patch.stopall)
+        sysmetrics.start_system_metrics(interval_config)
+        thread = sysmetrics._collector_thread
+        self.assertIsNotNone(thread)
+        thread.join(5)
+        self.assertTrue(loop.called)
+        self.assertTrue(sysmetrics._QUEUE_ENABLED)
+        self.assertFalse(sysmetrics._SYSTEM_ENABLED)
