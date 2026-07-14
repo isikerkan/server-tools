@@ -135,28 +135,33 @@ def _jobrunner_alive():
     )
 
 
-def _emit_queue_job_monitor(interval):
+def _emit_queue_heartbeat(interval):
     """Heartbeat check-in while the queue_job jobrunner thread lives -
-    Sentry Crons alerts on the missed check-in when it dies - plus
-    per-database backlog gauges."""
-    if _jobrunner_alive():
-        from sentry_sdk.crons import MonitorStatus, capture_checkin
+    Sentry Crons alerts on the missed check-in when it dies. The queue
+    itself has no schedule, so job states are reported as gauges by
+    :func:`_emit_queue_gauges` instead."""
+    if not _jobrunner_alive():
+        return
+    from sentry_sdk.crons import MonitorStatus, capture_checkin
 
-        capture_checkin(
-            monitor_slug=QUEUE_HEARTBEAT_SLUG,
-            status=MonitorStatus.OK,
-            monitor_config={
-                "schedule": {
-                    "type": "interval",
-                    "value": max(1, round(interval / 60)),
-                    "unit": "minute",
-                },
-                "checkin_margin": 5,
-                "max_runtime": 5,
-                "timezone": "UTC",
+    capture_checkin(
+        monitor_slug=QUEUE_HEARTBEAT_SLUG,
+        status=MonitorStatus.OK,
+        monitor_config={
+            "schedule": {
+                "type": "interval",
+                "value": max(1, round(interval / 60)),
+                "unit": "minute",
             },
-        )
+            "checkin_margin": 5,
+            "max_runtime": 5,
+            "timezone": "UTC",
+        },
+    )
 
+
+def _emit_queue_gauges():
+    """Per-database backlog gauges for queue_job states."""
     import odoo.modules.registry
     import odoo.sql_db
 
@@ -182,16 +187,28 @@ def _emit_queue_job_monitor(interval):
 
 def _collector_loop(interval, stop_event):
     while not stop_event.wait(interval):
-        try:
-            if _SYSTEM_ENABLED and psutil is not None:
+        # each signal is isolated: a failing host metric must not
+        # suppress the db metrics, and neither may suppress the
+        # heartbeat (a skipped heartbeat reads as a dead jobrunner)
+        if _SYSTEM_ENABLED and psutil is not None:
+            try:
                 _emit_host_metrics()
-            if _SYSTEM_ENABLED:
+            except Exception:
+                _logger.debug("Sentry host metrics tick failed", exc_info=True)
+        if _SYSTEM_ENABLED:
+            try:
                 _emit_db_metrics()
-            if _QUEUE_ENABLED:
-                _emit_queue_job_monitor(interval)
-        except Exception:
-            # Monitoring must never take the server down
-            _logger.debug("Sentry system metrics tick failed", exc_info=True)
+            except Exception:
+                _logger.debug("Sentry db metrics tick failed", exc_info=True)
+        if _QUEUE_ENABLED:
+            try:
+                _emit_queue_heartbeat(interval)
+            except Exception:
+                _logger.debug("Sentry queue heartbeat failed", exc_info=True)
+            try:
+                _emit_queue_gauges()
+            except Exception:
+                _logger.debug("Sentry queue gauges failed", exc_info=True)
 
 
 def start_system_metrics(config):

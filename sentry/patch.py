@@ -15,9 +15,15 @@ This module provides instrumentation for:
 
 import logging
 import re
+import threading
 import time
 
 _logger = logging.getLogger(__name__)
+
+# Written by the _run_job patch, read by the _process_job wrapper to
+# report the real job outcome to Sentry Crons (Odoo handles job
+# failures internally, so no exception reaches _process_job)
+_cron_state = threading.local()
 
 HAS_SENTRY_SDK = True
 sentry_metrics = None
@@ -307,6 +313,17 @@ def patch_cron_job():
         return
 
     _ori_process_job = ir_cron._process_job
+    _ori_run_job = ir_cron._run_job
+
+    @classmethod
+    def _run_job(cls, job):
+        # record the completion status so the check-in reflects the
+        # real outcome (failed jobs do not raise out of _process_job)
+        status = _ori_run_job.__func__(cls, job)
+        _cron_state.last_status = status
+        return status
+
+    ir_cron._run_job = _run_job
 
     @classmethod
     def _process_job(cls, db, cron_cr, job):
@@ -320,6 +337,7 @@ def patch_cron_job():
             slug, check_in_id = _cron_checkin_start(job, dbname)
         except Exception:
             _logger.debug("Sentry cron check-in failed", exc_info=True)
+        _cron_state.last_status = None
         try:
             with sentry_sdk.start_transaction(
                 op="cron",
@@ -331,7 +349,11 @@ def patch_cron_job():
                 if dbname:
                     transaction.set_tag("odoo.db", dbname)
                 result = _ori_process_job.__func__(cls, db, cron_cr, job)
-            _finish_checkin_safe(slug, check_in_id, True, started)
+            # 'failed' comes from CompletionStatus; a timed-out job is
+            # skipped by Odoo without running and reports ok here, the
+            # monitor's max_runtime covers that case instead
+            job_ok = getattr(_cron_state, "last_status", None) != "failed"
+            _finish_checkin_safe(slug, check_in_id, job_ok, started)
             return result
         except Exception:
             _finish_checkin_safe(slug, check_in_id, False, started)

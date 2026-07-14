@@ -15,16 +15,33 @@ class TestCronMonitors(TransactionCase):
             "interval_number": 5,
             "interval_type": "minutes",
         }
-        self.addCleanup(setattr, sentry_patch, "_CRON_MONITORS_ENABLED", False)
-        self.addCleanup(setattr, sentry_patch, "_CRON_MONITORS_INCLUDE", ())
+        self.addCleanup(
+            setattr,
+            sentry_patch,
+            "_CRON_MONITORS_ENABLED",
+            sentry_patch._CRON_MONITORS_ENABLED,
+        )
+        self.addCleanup(
+            setattr,
+            sentry_patch,
+            "_CRON_MONITORS_INCLUDE",
+            sentry_patch._CRON_MONITORS_INCLUDE,
+        )
 
     def test_slug(self):
         slug = sentry_patch._cron_monitor_slug("odoo_18", "Mail: Email Queue!")
         self.assertEqual(slug, "odoo_18-mail-email-queue")
-        self.assertLessEqual(len(slug), 50)
+
+    def test_slug_truncated_to_50(self):
+        slug = sentry_patch._cron_monitor_slug(
+            "a-very-long-database-name", "A Cron With An Extremely Long Name Indeed"
+        )
+        self.assertEqual(len(slug), 50)
+        self.assertTrue(slug.startswith("a-very-long-database-name-a-cron"))
 
     def test_disabled_by_default(self):
-        sentry_patch._CRON_MONITORS_ENABLED = False
+        # assert the module default instead of assigning it
+        self.assertFalse(sentry_patch._CRON_MONITORS_ENABLED)
         with patch("sentry_sdk.crons.capture_checkin") as checkin:
             result = sentry_patch._cron_checkin_start(self.job, "db1")
         self.assertEqual(result, (None, None))
