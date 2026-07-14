@@ -35,6 +35,14 @@ except ImportError:
 DEFAULT_INTERVAL = 60.0
 MIN_INTERVAL = 10.0
 
+# Sentry Crons heartbeat for the OCA queue_job jobrunner thread
+QUEUE_HEARTBEAT_SLUG = "odoo-queue-jobrunner"
+QUEUE_JOB_GAUGE_STATES = ("pending", "enqueued", "started", "failed")
+
+# Set from config by start_system_metrics()
+_SYSTEM_ENABLED = False
+_QUEUE_ENABLED = False
+
 _collector_thread = None
 # io counters are cumulative; deltas are emitted starting from the
 # second tick
@@ -120,20 +128,86 @@ def _emit_db_metrics():
             _logger.debug("Sentry db metrics failed for %s", dbname, exc_info=True)
 
 
+def _jobrunner_alive():
+    return any(
+        type(thread).__name__ == "QueueJobRunnerThread" and thread.is_alive()
+        for thread in threading.enumerate()
+    )
+
+
+def _emit_queue_job_monitor(interval):
+    """Heartbeat check-in while the queue_job jobrunner thread lives -
+    Sentry Crons alerts on the missed check-in when it dies - plus
+    per-database backlog gauges."""
+    if _jobrunner_alive():
+        from sentry_sdk.crons import MonitorStatus, capture_checkin
+
+        capture_checkin(
+            monitor_slug=QUEUE_HEARTBEAT_SLUG,
+            status=MonitorStatus.OK,
+            monitor_config={
+                "schedule": {
+                    "type": "interval",
+                    "value": max(1, round(interval / 60)),
+                    "unit": "minute",
+                },
+                "checkin_margin": 5,
+                "max_runtime": 5,
+                "timezone": "UTC",
+            },
+        )
+
+    import odoo.modules.registry
+    import odoo.sql_db
+
+    for dbname in list(odoo.modules.registry.Registry.registries.d):
+        try:
+            db = odoo.sql_db.db_connect(dbname)
+            with db.cursor() as cr:
+                cr.execute("SELECT to_regclass('queue_job')")
+                if cr.fetchone()[0] is None:
+                    continue
+                cr.execute("SELECT state, count(*) FROM queue_job GROUP BY state")
+                states = dict(cr.fetchall())
+            attributes = {"db": dbname}
+            for state in QUEUE_JOB_GAUGE_STATES:
+                sentry_metrics.gauge(
+                    f"queue_job.{state}", states.get(state, 0), attributes=attributes
+                )
+        except Exception:
+            _logger.debug(
+                "Sentry queue_job metrics failed for %s", dbname, exc_info=True
+            )
+
+
 def _collector_loop(interval, stop_event):
     while not stop_event.wait(interval):
         try:
-            if psutil is not None:
+            if _SYSTEM_ENABLED and psutil is not None:
                 _emit_host_metrics()
-            _emit_db_metrics()
+            if _SYSTEM_ENABLED:
+                _emit_db_metrics()
+            if _QUEUE_ENABLED:
+                _emit_queue_job_monitor(interval)
         except Exception:
             # Monitoring must never take the server down
             _logger.debug("Sentry system metrics tick failed", exc_info=True)
 
 
 def start_system_metrics(config):
-    """Start the metrics collector thread once per process (idempotent)."""
-    global _collector_thread
+    """Start the metrics collector thread once per process (idempotent).
+
+    The thread runs when host/database metrics
+    (sentry_system_metrics_enabled) or queue_job monitoring
+    (sentry_queue_job_monitor_enabled) is requested."""
+    global _collector_thread, _SYSTEM_ENABLED, _QUEUE_ENABLED
+
+    from .const import config_bool
+
+    _SYSTEM_ENABLED = config_bool(config, "sentry_system_metrics_enabled")
+    _QUEUE_ENABLED = config_bool(config, "sentry_queue_job_monitor_enabled")
+    if not (_SYSTEM_ENABLED or _QUEUE_ENABLED):
+        return
 
     if sentry_metrics is None:
         _logger.warning(
