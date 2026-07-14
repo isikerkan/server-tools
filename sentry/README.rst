@@ -177,6 +177,33 @@ Logs (Sentry Logs product, sentry-sdk >= 2.63)
 Loggers listed in ``sentry_exclude_loggers`` are also excluded from
 Logs.
 
+Cron Monitoring (Sentry Crons)
+------------------------------
+
++----------------------------------+----------------------------+-----------+
+| Option                           | Description                | Default   |
++==================================+============================+===========+
+| ``sentry_cron_monitors_enabled`` | Send a Sentry Crons        | ``false`` |
+|                                  | check-in for every ir.cron |           |
+|                                  | run; monitors and their    |           |
+|                                  | schedules are upserted     |           |
+|                                  | automatically from the     |           |
+|                                  | cron's interval, so        |           |
+|                                  | missed, late and failed    |           |
+|                                  | runs alert without any     |           |
+|                                  | setup in Sentry            |           |
++----------------------------------+----------------------------+-----------+
+| ``sentry_cron_monitors_include`` | Comma-separated list of    | all       |
+|                                  | cron names to monitor;     |           |
+|                                  | empty means all crons      |           |
++----------------------------------+----------------------------+-----------+
+
+Runtime overhead is negligible (two asynchronous envelopes per run), but
+every monitored cron counts against the Sentry Crons monitor quota of
+your plan - on instances with many frequent crons, use the include list
+to monitor only the business-critical ones. Monitor slugs are prefixed
+with the database name.
+
 Test runs
 ---------
 

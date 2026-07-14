@@ -57,9 +57,23 @@ _PATCHES_APPLIED = False
 # Set from config by apply_apm_patches()
 _METRICS_ENABLED = False
 _ORM_ENABLED = False
+_CRON_MONITORS_ENABLED = False
+_CRON_MONITORS_INCLUDE = ()
 
 # ORM methods traced when sentry_trace_orm is enabled
 ORM_TRACED_METHODS = ("create", "write", "unlink", "read", "_search")
+
+# ir.cron interval_type -> Sentry monitor schedule unit
+CRON_UNIT_MAP = {
+    "minutes": "minute",
+    "hours": "hour",
+    "days": "day",
+    "weeks": "week",
+    "months": "month",
+}
+# Grace period before a missed check-in alerts, and runtime cap (minutes)
+CRON_CHECKIN_MARGIN = 5
+CRON_MAX_RUNTIME = 30
 
 # Numeric path segments (record ids, attachment ids, ...) would explode
 # metric attribute cardinality
@@ -217,6 +231,67 @@ def patch_cursor_execute():
     _logger.debug("Patched odoo.sql_db.Cursor.execute for Sentry APM")
 
 
+def _cron_monitor_slug(dbname, cron_name):
+    """Sentry monitor slug: max 50 chars of [a-z0-9-_], db-prefixed so
+    the same cron on different databases gets distinct monitors."""
+    slug = re.sub(r"[^a-z0-9_-]+", "-", f"{dbname}-{cron_name}".lower())
+    return slug.strip("-")[:50] or "unknown"
+
+
+def _cron_checkin_start(job, dbname):
+    """Open a Sentry Crons check-in for this run. The monitor and its
+    schedule are upserted from the cron's own interval, so missed and
+    late runs are detected without any setup in Sentry."""
+    if not _CRON_MONITORS_ENABLED:
+        return None, None
+    cron_name = job.get("cron_name") or ""
+    if _CRON_MONITORS_INCLUDE and cron_name not in _CRON_MONITORS_INCLUDE:
+        return None, None
+
+    from sentry_sdk.crons import MonitorStatus, capture_checkin
+
+    monitor_config = None
+    unit = CRON_UNIT_MAP.get(job.get("interval_type"))
+    if unit and job.get("interval_number"):
+        monitor_config = {
+            "schedule": {
+                "type": "interval",
+                "value": job["interval_number"],
+                "unit": unit,
+            },
+            "checkin_margin": CRON_CHECKIN_MARGIN,
+            "max_runtime": CRON_MAX_RUNTIME,
+            "timezone": "UTC",
+        }
+    slug = _cron_monitor_slug(dbname, cron_name)
+    check_in_id = capture_checkin(
+        monitor_slug=slug,
+        status=MonitorStatus.IN_PROGRESS,
+        monitor_config=monitor_config,
+    )
+    return slug, check_in_id
+
+
+def _cron_checkin_finish(slug, check_in_id, ok, duration):
+    if not check_in_id:
+        return
+    from sentry_sdk.crons import MonitorStatus, capture_checkin
+
+    capture_checkin(
+        monitor_slug=slug,
+        check_in_id=check_in_id,
+        status=MonitorStatus.OK if ok else MonitorStatus.ERROR,
+        duration=duration,
+    )
+
+
+def _finish_checkin_safe(slug, check_in_id, ok, started):
+    try:
+        _cron_checkin_finish(slug, check_in_id, ok, time.monotonic() - started)
+    except Exception:
+        _logger.debug("Sentry cron check-in failed", exc_info=True)
+
+
 def patch_cron_job():
     """
     Monkey-patch Odoo's cron job processing to create Sentry transactions
@@ -240,6 +315,11 @@ def patch_cron_job():
         cron_name = job.get("cron_name") or "unknown"
         dbname = getattr(cron_cr, "dbname", "")
         started = time.monotonic()
+        slug = check_in_id = None
+        try:
+            slug, check_in_id = _cron_checkin_start(job, dbname)
+        except Exception:
+            _logger.debug("Sentry cron check-in failed", exc_info=True)
         try:
             with sentry_sdk.start_transaction(
                 op="cron",
@@ -250,7 +330,12 @@ def patch_cron_job():
                 transaction.set_tag("odoo.cron.id", job.get("id") or "unknown")
                 if dbname:
                     transaction.set_tag("odoo.db", dbname)
-                return _ori_process_job.__func__(cls, db, cron_cr, job)
+                result = _ori_process_job.__func__(cls, db, cron_cr, job)
+            _finish_checkin_safe(slug, check_in_id, True, started)
+            return result
+        except Exception:
+            _finish_checkin_safe(slug, check_in_id, False, started)
+            raise
         finally:
             if _METRICS_ENABLED and sentry_metrics:
                 try:
@@ -353,14 +438,19 @@ def apply_apm_patches(config=None):
     monitoring. Idempotent: safe to call more than once per process.
     """
     global _PATCHES_APPLIED, _METRICS_ENABLED, _ORM_ENABLED
+    global _CRON_MONITORS_ENABLED, _CRON_MONITORS_INCLUDE
 
     if config is not None:
-        from .const import config_bool
+        from .const import config_bool, split_multiple
 
         _METRICS_ENABLED = config_bool(
             config, "sentry_metrics_enabled", sentry_metrics is not None
         ) and (sentry_metrics is not None)
         _ORM_ENABLED = config_bool(config, "sentry_trace_orm")
+        _CRON_MONITORS_ENABLED = config_bool(config, "sentry_cron_monitors_enabled")
+        _CRON_MONITORS_INCLUDE = tuple(
+            split_multiple(config.get("sentry_cron_monitors_include", ""))
+        )
 
     if _PATCHES_APPLIED:
         _logger.debug("Sentry APM patches already applied, skipping")
