@@ -67,6 +67,12 @@ Loggers listed in `sentry_exclude_loggers` are also excluded from Logs.
 |--------|-------------|---------|
 | `sentry_cron_monitors_enabled` | Send a Sentry Crons check-in for every ir.cron run; monitors and their schedules are upserted automatically from the cron's interval, so missed, late and failed runs alert without any setup in Sentry | `false` |
 | `sentry_cron_monitors_include` | Comma-separated list of cron names to monitor; empty means all crons | all |
+| `sentry_queue_job_monitor_enabled` | OCA queue_job monitoring: a Crons heartbeat for the jobrunner thread (missed check-in = dead runner) plus per-database backlog gauges `queue_job.pending/enqueued/started/failed` | `false` |
+
+Queue jobs themselves have no schedule, so they cannot be individual
+Crons monitors; the jobrunner heartbeat plus backlog gauges cover the
+operational questions instead (is the runner alive, is the queue
+draining). The heartbeat uses one monitor (`odoo-queue-jobrunner`).
 
 Runtime overhead is negligible (two asynchronous envelopes per run),
 but every monitored cron counts against the Sentry Crons monitor quota

@@ -317,9 +317,12 @@ def initialize_sentry(config):
 
         apply_apm_patches(config)
 
-    # Optional host/database gauges (CPU, RAM, disk, network, db
-    # connections/size) emitted by a background thread
-    if config_bool(config, "sentry_system_metrics_enabled"):
+    # Optional background collector: host/database gauges (CPU, RAM,
+    # disk, network, db connections/size) and/or queue_job monitoring
+    # (jobrunner heartbeat + backlog gauges)
+    if config_bool(config, "sentry_system_metrics_enabled") or config_bool(
+        config, "sentry_queue_job_monitor_enabled"
+    ):
         from .sysmetrics import start_system_metrics
 
         start_system_metrics(config)
