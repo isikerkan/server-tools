@@ -12,6 +12,22 @@ import odoo.loglevels
 from odoo.tools import str2bool
 
 
+# How the Sentry integration presents Odoo:
+# - python (default): backend SDK only, no browser SDK injection
+# - javascript: additionally inject the Sentry Loader Script into web
+#   pages (Session Replay, browser errors) when configured
+SENTRY_MODE_PYTHON = "python"
+SENTRY_MODE_JAVASCRIPT = "javascript"
+SENTRY_MODES = (SENTRY_MODE_PYTHON, SENTRY_MODE_JAVASCRIPT)
+
+
+def get_sentry_mode(config, default=SENTRY_MODE_PYTHON):
+    """Read and normalize the sentry_mode option; unknown values fall
+    back to the default so a typo cannot silently expose the loader."""
+    mode = str(config.get("sentry_mode") or default).strip().lower()
+    return mode if mode in SENTRY_MODES else default
+
+
 def config_bool(config, key, default=False):
     """Read a boolean from Odoo config; raw config values are strings,
     so 'false' would otherwise be truthy."""
