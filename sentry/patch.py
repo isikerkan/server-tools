@@ -63,6 +63,7 @@ _PATCHES_APPLIED = False
 # Set from config by apply_apm_patches()
 _METRICS_ENABLED = False
 _ORM_ENABLED = False
+_ORM_PATCHED = False
 _CRON_MONITORS_ENABLED = False
 _CRON_MONITORS_INCLUDE = ()
 
@@ -349,10 +350,12 @@ def patch_cron_job():
                 if dbname:
                     transaction.set_tag("odoo.db", dbname)
                 result = _ori_process_job.__func__(cls, db, cron_cr, job)
-            # 'failed' comes from CompletionStatus; a timed-out job is
-            # skipped by Odoo without running and reports ok here, the
-            # monitor's max_runtime covers that case instead
-            job_ok = getattr(_cron_state, "last_status", None) != "failed"
+            # 'failed' comes from CompletionStatus. If the status is
+            # still None, _run_job was never called: that is Odoo's
+            # failed_by_timeout branch, which records FAILED without
+            # running the job - report it as an error too.
+            status = getattr(_cron_state, "last_status", None)
+            job_ok = status is not None and status != "failed"
             _finish_checkin_safe(slug, check_in_id, job_ok, started)
             return result
         except Exception:
@@ -382,10 +385,13 @@ def patch_orm():
     Monkey-patch BaseModel CRUD/search methods to create ORM-level spans.
     Gives Sentry semantic visibility (model + operation) on top of the
     raw SQL spans. Opt-in via sentry_trace_orm: it adds a wrapper call
-    to some of the hottest methods in Odoo.
+    to some of the hottest methods in Odoo. Idempotent.
     """
-    if not HAS_SENTRY_SDK:
+    global _ORM_PATCHED
+
+    if not HAS_SENTRY_SDK or _ORM_PATCHED:
         return
+    _ORM_PATCHED = True
 
     import functools
 
@@ -430,28 +436,32 @@ def patch_queue_job():
         return
 
     try:
-        from odoo.addons.queue_job.jobrunner.runner import QueueJobRunner
+        from odoo.addons.queue_job.controllers.main import RunJobController
     except ImportError:
         _logger.debug("queue_job module not installed, skipping APM patch")
         return
 
-    if not hasattr(QueueJobRunner, "_try_perform_job"):
-        _logger.debug("QueueJobRunner._try_perform_job not found, skipping patch")
+    if not hasattr(RunJobController, "_try_perform_job"):
+        _logger.debug("RunJobController._try_perform_job not found, skipping patch")
         return
 
-    _ori_try_perform_job = QueueJobRunner._try_perform_job
+    _ori_try_perform_job = RunJobController._try_perform_job
 
-    def _try_perform_job(self, env, job):
+    @classmethod
+    def _try_perform_job(cls, env, job):
+        # jobs execute in the HTTP workers through RunJobController
+        # (the jobrunner thread only dispatches HTTP calls), so this is
+        # where the tags land on the job's own transaction
         try:
             sentry_sdk.set_tag("odoo.job.model", job.model_name)
             sentry_sdk.set_tag("odoo.job.method", job.method_name)
             sentry_sdk.set_tag("odoo.job.uuid", job.uuid)
         except Exception:
             _logger.debug("Sentry queue_job tags failed", exc_info=True)
-        return _ori_try_perform_job(self, env, job)
+        return _ori_try_perform_job.__func__(cls, env, job)
 
-    QueueJobRunner._try_perform_job = _try_perform_job
-    _logger.debug("Patched QueueJobRunner._try_perform_job for Sentry APM")
+    RunJobController._try_perform_job = _try_perform_job
+    _logger.debug("Patched RunJobController._try_perform_job for Sentry APM")
 
 
 def apply_apm_patches(config=None):
@@ -474,6 +484,12 @@ def apply_apm_patches(config=None):
             split_multiple(config.get("sentry_cron_monitors_include", ""))
         )
 
+    # per-patch flag: honored even when the base patches are already
+    # applied, so a later call with sentry_trace_orm newly enabled still
+    # installs the ORM spans (true idempotency per patch)
+    if _ORM_ENABLED:
+        patch_orm()
+
     if _PATCHES_APPLIED:
         _logger.debug("Sentry APM patches already applied, skipping")
         return
@@ -483,7 +499,5 @@ def apply_apm_patches(config=None):
     patch_cursor_execute()
     patch_cron_job()
     patch_queue_job()
-    if _ORM_ENABLED:
-        patch_orm()
     _PATCHES_APPLIED = True
     _logger.info("Sentry APM patches applied successfully")

@@ -32,5 +32,6 @@ class TestSentryMode(TransactionCase):
             self.assertTrue(ir_http.sentry_frontend_enabled())
         with patch.dict(config.options, {"sentry_mode": "python"}):
             self.assertFalse(ir_http.sentry_frontend_enabled())
-        config.options.pop("sentry_mode", None)
-        self.assertFalse(ir_http.sentry_frontend_enabled())
+        with patch.dict(config.options):
+            config.options.pop("sentry_mode", None)
+            self.assertFalse(ir_http.sentry_frontend_enabled())
