@@ -17,9 +17,12 @@
         name="Sentry Browser SDK / Session Replay"
     >
         <xpath expr="//head" position="inside">
+            <!-- the loader only injects in javascript mode (server
+                 config sentry_mode); in python mode Sentry stays a
+                 pure backend integration -->
             <t
                 t-set="sentry_browser_loader_url"
-                t-value="request and request.env['ir.config_parameter'].sudo().get_param('sentry.browser_loader_url')"
+                t-value="request and request.env['ir.http'].sentry_frontend_enabled() and request.env['ir.config_parameter'].sudo().get_param('sentry.browser_loader_url')"
             />
             <t t-if="sentry_browser_loader_url">
                 <t
