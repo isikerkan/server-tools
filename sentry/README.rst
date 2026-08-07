@@ -222,11 +222,34 @@ suites raise expected exceptions constantly and would flood the project
 with noise. Set ``sentry_enable_in_tests = true`` to opt back in (e.g.
 to test the integration itself).
 
+Integration mode: Python vs JavaScript app
+------------------------------------------
+
++-----------------+---------------------------------------+------------+
+| Option          | Description                           | Default    |
++=================+=======================================+============+
+| ``sentry_mode`` | ``python``: backend SDK only, the     | ``python`` |
+|                 | browser loader is never injected      |            |
+|                 | regardless of system parameters.      |            |
+|                 | ``javascript``: additionally inject   |            |
+|                 | the Sentry Loader Script (browser     |            |
+|                 | errors, Session Replay) when          |            |
+|                 | ``sentry.browser_loader_url`` is set. |            |
+|                 | Unknown values fall back to           |            |
+|                 | ``python``.                           |            |
++-----------------+---------------------------------------+------------+
+
+The mode is a server option so multi-database deployments behave
+consistently. In ``python`` mode the Sentry project should keep the
+``python`` platform; in ``javascript`` mode set it to ``javascript`` so
+the Replay UI is available.
+
 Session Replay (browser)
 ------------------------
 
-Session Replay records the user's browser session and therefore can only
-be captured by the Sentry **JavaScript** SDK - not by this Python addon.
+Session Replay only applies in ``sentry_mode = javascript``. Session
+Replay records the user's browser session and therefore can only be
+captured by the Sentry **JavaScript** SDK - not by this Python addon.
 This module can inject the Sentry Loader Script into every web page:
 create the Loader in Sentry (Settings → Projects → Loader Script, enable
 Session Replay and choose the sample rates there) and store its URL in

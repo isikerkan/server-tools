@@ -11,7 +11,6 @@ from sentry_sdk.integrations.logging import LoggingIntegration
 import odoo.loglevels
 from odoo.tools import str2bool
 
-
 # How the Sentry integration presents Odoo:
 # - python (default): backend SDK only, no browser SDK injection
 # - javascript: additionally inject the Sentry Loader Script into web
