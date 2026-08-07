@@ -22,9 +22,7 @@ class TestSentryMode(TransactionCase):
         )
 
     def test_unknown_value_falls_back(self):
-        self.assertEqual(
-            get_sentry_mode({"sentry_mode": "nodejs"}), SENTRY_MODE_PYTHON
-        )
+        self.assertEqual(get_sentry_mode({"sentry_mode": "nodejs"}), SENTRY_MODE_PYTHON)
 
     def test_frontend_enabled_follows_mode(self):
         ir_http = self.env["ir.http"]
