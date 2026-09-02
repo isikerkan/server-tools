@@ -41,9 +41,11 @@ class TestCronMonitors(TransactionCase):
         self.assertEqual(len(slug), 50)
         self.assertTrue(slug.startswith("a-very-long-database-name-a-cron"))
 
-    def test_disabled_by_default(self):
-        # assert the module default instead of assigning it
-        self.assertFalse(sentry_patch._CRON_MONITORS_ENABLED)
+    def test_disabled_no_checkin(self):
+        # the module-level flag mirrors the server config, so a dev box
+        # with sentry_cron_monitors_enabled = true must not fail here:
+        # assert the behaviour of the disabled state, not the default
+        sentry_patch._CRON_MONITORS_ENABLED = False
         with patch("sentry_sdk.crons.capture_checkin") as checkin:
             result = sentry_patch._cron_checkin_start(self.job, "db1")
         self.assertEqual(result, (None, None))
