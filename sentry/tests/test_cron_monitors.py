@@ -2,6 +2,8 @@
 
 from unittest.mock import patch
 
+import sentry_sdk
+
 from odoo.tests import TransactionCase
 
 from .. import patch as sentry_patch
@@ -78,3 +80,17 @@ class TestCronMonitors(TransactionCase):
         with patch("sentry_sdk.crons.capture_checkin") as checkin:
             sentry_patch._cron_checkin_finish(None, None, True, 0.1)
         checkin.assert_not_called()
+
+    def test_transaction_does_not_leak_into_thread_scope(self):
+        # the cron thread is long-lived: a job's transaction name must
+        # not stay on the scope once the job is done, otherwise later
+        # errors on the thread get attributed to that job
+        before = sentry_sdk.get_current_scope()._transaction
+        with sentry_patch._cron_transaction("Some Cron", {"id": 7}, "db1") as tx:
+            self.assertEqual(tx.name, "Cron: Some_Cron")
+            self.assertEqual(tx.op, "cron")
+            self.assertEqual(
+                sentry_sdk.get_current_scope()._transaction, "Cron: Some_Cron"
+            )
+        self.assertEqual(sentry_sdk.get_current_scope()._transaction, before)
+        self.assertIsNone(sentry_sdk.get_current_scope().span)
