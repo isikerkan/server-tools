@@ -780,13 +780,14 @@ are necessary.</p>
 all Odoo logging records in a running Odoo process. This means that
 once installed in one database, it will intercept and report errors
 for all Odoo databases, which are used on that Odoo server.</li>
-<li><strong>Frontend integration</strong> – In the future, it would be nice to add
-Odoo client-side error reporting to this module as well, by
-integrating <a class="reference external" href="https://github.com/getsentry/raven-js">raven-js</a>.
-Additionally, <a class="reference external" href="https://docs.sentry.io/learn/user-feedback/">Sentry user feedback
-form</a> could be
-integrated into the Odoo client error dialog window to allow users
-shortly describe what they were doing when things went wrong.</li>
+<li><strong>Frontend integration</strong> – Browser-side error capture and Session
+Replay are available through the Sentry Loader Script injection
+(<tt class="docutils literal">sentry_mode = javascript</tt>). Remaining ideas: integrate the <a class="reference external" href="https://docs.sentry.io/product/user-feedback/">Sentry
+user feedback
+widget</a> into the
+Odoo client error dialog so users can describe what they were doing,
+and upload source maps for the minified Odoo asset bundles so browser
+stack traces resolve to readable frames.</li>
 </ul>
 </div>
 <div class="section" id="bug-tracker">
