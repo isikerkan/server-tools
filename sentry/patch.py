@@ -17,6 +17,7 @@ import logging
 import re
 import threading
 import time
+from contextlib import contextmanager
 
 _logger = logging.getLogger(__name__)
 
@@ -299,6 +300,30 @@ def _finish_checkin_safe(slug, check_in_id, ok, started):
         _logger.debug("Sentry cron check-in failed", exc_info=True)
 
 
+@contextmanager
+def _cron_transaction(cron_name, job, dbname):
+    """Run a cron job inside its own Sentry transaction and scope.
+
+    The scopes are forked so the transaction name and tags do not
+    outlive the job: cron threads are long-lived and an error raised
+    later on the same thread (for instance the connection poll during
+    shutdown) would otherwise be attributed to the last job that ran.
+    """
+    with (
+        sentry_sdk.isolation_scope(),
+        sentry_sdk.start_transaction(
+            op="cron",
+            name=f"Cron: {cron_name.replace(' ', '_')}",
+            source=TRANSACTION_SOURCE_ROUTE,
+        ) as transaction,
+    ):
+        transaction.set_tag("odoo.cron.name", cron_name)
+        transaction.set_tag("odoo.cron.id", job.get("id") or "unknown")
+        if dbname:
+            transaction.set_tag("odoo.db", dbname)
+        yield transaction
+
+
 def patch_cron_job():
     """
     Monkey-patch Odoo's cron job processing to create Sentry transactions
@@ -340,15 +365,7 @@ def patch_cron_job():
             _logger.debug("Sentry cron check-in failed", exc_info=True)
         _cron_state.last_status = None
         try:
-            with sentry_sdk.start_transaction(
-                op="cron",
-                name=f"Cron: {cron_name.replace(' ', '_')}",
-                source=TRANSACTION_SOURCE_ROUTE,
-            ) as transaction:
-                transaction.set_tag("odoo.cron.name", cron_name)
-                transaction.set_tag("odoo.cron.id", job.get("id") or "unknown")
-                if dbname:
-                    transaction.set_tag("odoo.db", dbname)
+            with _cron_transaction(cron_name, job, dbname):
                 result = _ori_process_job.__func__(cls, db, cron_cr, job)
             # 'failed' comes from CompletionStatus. If the status is
             # still None, _run_job was never called: that is Odoo's
