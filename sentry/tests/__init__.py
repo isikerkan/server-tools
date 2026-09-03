@@ -10,4 +10,6 @@ from . import (
     test_sampler,
     test_sysmetrics,
     test_test_mode,
+    test_mode,
+    test_replay_options,
 )
