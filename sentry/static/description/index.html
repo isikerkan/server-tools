@@ -705,9 +705,9 @@ system parameters override the rates client-side (parsed in the browser;
 invalid values fall back to the defaults):</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="51%" />
-<col width="38%" />
-<col width="12%" />
+<col width="50%" />
+<col width="36%" />
+<col width="14%" />
 </colgroup>
 <thead valign="bottom">
 <tr><th class="head">System parameter</th>
@@ -726,8 +726,42 @@ recorded (0.0 to 1.0)</td>
 recorded (0.0 to 1.0)</td>
 <td><tt class="docutils literal">1.0</tt></td>
 </tr>
+<tr><td><tt class="docutils literal">sentry.replay_identify_user</tt></td>
+<td><tt class="docutils literal">true</tt>: attach the
+logged-in Odoo user (id,
+login, name - no email) to
+browser events and
+replays, so a replay can
+be searched by user.
+Personal data, hence off
+by default.</td>
+<td><tt class="docutils literal">false</tt></td>
+</tr>
+<tr><td><tt class="docutils literal">sentry.replay_flush_on_rpc_error</tt></td>
+<td><tt class="docutils literal">true</tt>: when a
+server-side error comes
+back over RPC (Odoo’s
+error dialog), upload the
+replay buffered so far.
+Otherwise replays sampled
+“on error” are only
+uploaded for errors thrown
+in the browser itself, and
+backend failures never get
+a replay. The backend
+event and the replay are
+linked through the
+propagated trace; no
+duplicate browser error is
+created.</td>
+<td><tt class="docutils literal">false</tt></td>
+</tr>
 </tbody>
 </table>
+<p>Replay is a recording of the <em>user’s</em> session: leave
+<tt class="docutils literal">sentry.replay_flush_on_rpc_error</tt> off if you only care about frontend
+crashes, turn it on when you want to see what a user did before a
+backend error dialog appeared.</p>
 </div>
 <div class="section" id="example-odoo-configuration">
 <h2><a class="toc-backref" href="#toc-entry-12">Example Odoo configuration</a></h2>
