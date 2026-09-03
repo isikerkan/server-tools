@@ -592,6 +592,8 @@ are necessary. On every server start an informational event *Starting
 Odoo Server* is sent, which is the quickest way to confirm that the DSN
 and the network path work.
 
+|Try me on Runboat|
+
 Verifying the integration end to end
 ------------------------------------
 
@@ -679,6 +681,9 @@ Known cosmetic noise
   metrics collector runs in every Odoo process that executed the
   module's ``post_load`` hook; if several such processes run on one
   host, the ``system.*`` gauges are emitted once per process.
+
+.. |Try me on Runboat| image:: https://odoo-community.org/website/image/ir.attachment/5784_f2813bd/datas
+   :target: https://runboat.odoo-community.org/webui/builds.html?repo=OCA/server-tools
 
 Known issues / Roadmap
 ======================

@@ -4,6 +4,8 @@ are necessary. On every server start an informational event *Starting
 Odoo Server* is sent, which is the quickest way to confirm that the DSN
 and the network path work.
 
+[![Try me on Runboat](https://odoo-community.org/website/image/ir.attachment/5784_f2813bd/datas)](https://runboat.odoo-community.org/webui/builds.html?repo=OCA/server-tools)
+
 ## Verifying the integration end to end
 
 The list below says what each kind of failure looks like in Sentry, so
