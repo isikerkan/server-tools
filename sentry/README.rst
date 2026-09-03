@@ -262,15 +262,46 @@ The Loader ships with a fixed 10% session sample rate. Two optional
 system parameters override the rates client-side (parsed in the browser;
 invalid values fall back to the defaults):
 
-+---------------------------------------+-----------------------------+---------+
-| System parameter                      | Description                 | Default |
-+=======================================+=============================+=========+
-| ``sentry.replay_session_sample_rate`` | Fraction of sessions        | ``0.1`` |
-|                                       | recorded (0.0 to 1.0)       |         |
-+---------------------------------------+-----------------------------+---------+
-| ``sentry.replay_error_sample_rate``   | Fraction of error sessions  | ``1.0`` |
-|                                       | recorded (0.0 to 1.0)       |         |
-+---------------------------------------+-----------------------------+---------+
++---------------------------------------+----------------------------+-----------+
+| System parameter                      | Description                | Default   |
++=======================================+============================+===========+
+| ``sentry.replay_session_sample_rate`` | Fraction of sessions       | ``0.1``   |
+|                                       | recorded (0.0 to 1.0)      |           |
++---------------------------------------+----------------------------+-----------+
+| ``sentry.replay_error_sample_rate``   | Fraction of error sessions | ``1.0``   |
+|                                       | recorded (0.0 to 1.0)      |           |
++---------------------------------------+----------------------------+-----------+
+| ``sentry.replay_identify_user``       | ``true``: attach the       | ``false`` |
+|                                       | logged-in Odoo user (id,   |           |
+|                                       | login, name - no email) to |           |
+|                                       | browser events and         |           |
+|                                       | replays, so a replay can   |           |
+|                                       | be searched by user.       |           |
+|                                       | Personal data, hence off   |           |
+|                                       | by default.                |           |
++---------------------------------------+----------------------------+-----------+
+| ``sentry.replay_flush_on_rpc_error``  | ``true``: when a           | ``false`` |
+|                                       | server-side error comes    |           |
+|                                       | back over RPC (Odoo's      |           |
+|                                       | error dialog), upload the  |           |
+|                                       | replay buffered so far.    |           |
+|                                       | Otherwise replays sampled  |           |
+|                                       | "on error" are only        |           |
+|                                       | uploaded for errors thrown |           |
+|                                       | in the browser itself, and |           |
+|                                       | backend failures never get |           |
+|                                       | a replay. The backend      |           |
+|                                       | event and the replay are   |           |
+|                                       | linked through the         |           |
+|                                       | propagated trace; no       |           |
+|                                       | duplicate browser error is |           |
+|                                       | created.                   |           |
++---------------------------------------+----------------------------+-----------+
+
+Replay is a recording of the *user's* session: leave
+``sentry.replay_flush_on_rpc_error`` off if you only care about frontend
+crashes, turn it on when you want to see what a user did before a
+backend error dialog appeared.
 
 Example Odoo configuration
 --------------------------

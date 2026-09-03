@@ -33,6 +33,11 @@
                     t-set="sentry_replay_error_rate"
                     t-value="request.env['ir.config_parameter'].sudo().get_param('sentry.replay_error_sample_rate')"
                 />
+                <t
+                    t-set="sentry_replay_options"
+                    t-value="request.env['ir.http'].sentry_replay_options()"
+                />
+                <t t-set="sentry_replay_user" t-value="sentry_replay_options['user']" />
                 <!-- The loader defaults to a 10% session sample rate;
                      override it via the sentry.replay_*_sample_rate
                      system parameters (values 0.0 to 1.0). The raw
@@ -40,21 +45,35 @@
                      attribute escaping, no code generation) and parsed
                      in the browser, so an invalid parameter falls back
                      to the defaults instead of breaking page
-                     rendering. -->
+                     rendering. The same attributes carry the opt-in
+                     user identification and the RPC-error flush flag
+                     (see ir.http.sentry_replay_options). -->
                 <script
-                    t-if="sentry_replay_session_rate or sentry_replay_error_rate"
+                    t-if="sentry_replay_session_rate or sentry_replay_error_rate or sentry_replay_user or sentry_replay_options['flush_on_rpc_error']"
                     t-att-data-session-rate="sentry_replay_session_rate"
                     t-att-data-error-rate="sentry_replay_error_rate"
+                    t-att-data-user-id="sentry_replay_user and sentry_replay_user['id']"
+                    t-att-data-user-login="sentry_replay_user and sentry_replay_user['login']"
+                    t-att-data-user-name="sentry_replay_user and sentry_replay_user['name']"
+                    t-att-data-flush-on-rpc-error="sentry_replay_options['flush_on_rpc_error'] and '1'"
                 >
 (function () {
     var data = document.currentScript.dataset;
     var sessionRate = parseFloat(data.sessionRate);
     var errorRate = parseFloat(data.errorRate);
+    window.sentryReplayFlushOnRpcError = data.flushOnRpcError === "1";
     window.sentryOnLoad = function () {
         Sentry.init({
             replaysSessionSampleRate: isNaN(sessionRate) ? 0.1 : sessionRate,
             replaysOnErrorSampleRate: isNaN(errorRate) ? 1.0 : errorRate,
         });
+        if (data.userId) {
+            Sentry.setUser({
+                id: data.userId,
+                username: data.userLogin,
+                name: data.userName,
+            });
+        }
     };
 })();
                 </script>

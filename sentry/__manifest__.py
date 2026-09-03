@@ -3,7 +3,7 @@
 {
     "name": "Sentry",
     "summary": "Report Odoo errors to Sentry",
-    "version": "18.0.2.3.0",
+    "version": "18.0.2.4.0",
     "category": "Extra Tools",
     "website": "https://github.com/OCA/server-tools",
     "author": "Mohammed Barsi,"
@@ -27,5 +27,10 @@
     "data": [
         "views/sentry_replay_templates.xml",
     ],
+    "assets": {
+        "web.assets_backend": [
+            "sentry/static/src/js/replay_rpc_errors.esm.js",
+        ],
+    },
     "post_load": "post_load",
 }
