@@ -371,34 +371,47 @@ ul.auto-toc {
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
 <p><a class="reference external image-reference" href="https://odoo-community.org/page/development-status"><img alt="Beta" src="https://img.shields.io/badge/maturity-Beta-yellow.png" /></a> <a class="reference external image-reference" href="http://www.gnu.org/licenses/agpl-3.0-standalone.html"><img alt="License: AGPL-3" src="https://img.shields.io/badge/licence-AGPL--3-blue.png" /></a> <a class="reference external image-reference" href="https://github.com/OCA/server-tools/tree/18.0/sentry"><img alt="OCA/server-tools" src="https://img.shields.io/badge/github-OCA%2Fserver--tools-lightgray.png?logo=github" /></a> <a class="reference external image-reference" href="https://translation.odoo-community.org/projects/server-tools-18-0/server-tools-18-0-sentry"><img alt="Translate me on Weblate" src="https://img.shields.io/badge/weblate-Translate%20me-F47D42.png" /></a> <a class="reference external image-reference" href="https://runboat.odoo-community.org/builds?repo=OCA/server-tools&amp;target_branch=18.0"><img alt="Try me on Runboat" src="https://img.shields.io/badge/runboat-Try%20me-875A7B.png" /></a></p>
 <p>This module allows painless <a class="reference external" href="https://sentry.io/">Sentry</a> integration
-with Odoo.</p>
+with Odoo: server-side errors and logged errors out of the box, and,
+when enabled, APM tracing of requests, SQL and crons, Sentry Metrics and
+host/database gauges, Sentry Crons check-ins for <tt class="docutils literal">ir.cron</tt>, queue_job
+tagging, Sentry Logs, and the browser Loader Script for frontend errors
+and Session Replay.</p>
 <p><strong>Table of contents</strong></p>
 <div class="contents local topic" id="contents">
 <ul class="simple">
 <li><a class="reference internal" href="#installation" id="toc-entry-1">Installation</a></li>
 <li><a class="reference internal" href="#configuration" id="toc-entry-2">Configuration</a><ul>
-<li><a class="reference internal" href="#apm-application-performance-monitoring" id="toc-entry-3">APM (Application Performance Monitoring)</a><ul>
-<li><a class="reference internal" href="#apm-configuration-options" id="toc-entry-4">APM Configuration Options</a></li>
-<li><a class="reference internal" href="#apm-features" id="toc-entry-5">APM Features</a></li>
+<li><a class="reference internal" href="#core" id="toc-entry-3">Core</a></li>
+<li><a class="reference internal" href="#logging" id="toc-entry-4">Logging</a></li>
+<li><a class="reference internal" href="#apm-application-performance-monitoring" id="toc-entry-5">APM (Application Performance Monitoring)</a></li>
+<li><a class="reference internal" href="#metrics-and-system-metrics-sentry-metrics-product-sentry-sdk-2-63" id="toc-entry-6">Metrics and system metrics (Sentry Metrics product, sentry-sdk &gt;= 2.63)</a></li>
+<li><a class="reference internal" href="#cron-monitoring-sentry-crons" id="toc-entry-7">Cron monitoring (Sentry Crons)</a></li>
+<li><a class="reference internal" href="#queue-job-oca" id="toc-entry-8">queue_job (OCA)</a></li>
+<li><a class="reference internal" href="#integration-mode-and-browser-loader-session-replay" id="toc-entry-9">Integration mode and browser loader / Session Replay</a></li>
+<li><a class="reference internal" href="#test-runs" id="toc-entry-10">Test runs</a></li>
+<li><a class="reference internal" href="#example-odoo-configuration" id="toc-entry-11">Example Odoo configuration</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#metrics-sentry-metrics-product-sentry-sdk-2-63" id="toc-entry-6">Metrics (Sentry Metrics product, sentry-sdk &gt;= 2.63)</a></li>
-<li><a class="reference internal" href="#logs-sentry-logs-product-sentry-sdk-2-63" id="toc-entry-7">Logs (Sentry Logs product, sentry-sdk &gt;= 2.63)</a></li>
-<li><a class="reference internal" href="#cron-monitoring-sentry-crons" id="toc-entry-8">Cron Monitoring (Sentry Crons)</a></li>
-<li><a class="reference internal" href="#test-runs" id="toc-entry-9">Test runs</a></li>
-<li><a class="reference internal" href="#integration-mode-python-vs-javascript-app" id="toc-entry-10">Integration mode: Python vs JavaScript app</a></li>
-<li><a class="reference internal" href="#session-replay-browser" id="toc-entry-11">Session Replay (browser)</a></li>
-<li><a class="reference internal" href="#example-odoo-configuration" id="toc-entry-12">Example Odoo configuration</a></li>
+<li><a class="reference internal" href="#usage" id="toc-entry-12">Usage</a><ul>
+<li><a class="reference internal" href="#verifying-the-integration-end-to-end" id="toc-entry-13">Verifying the integration end to end</a></li>
+<li><a class="reference internal" href="#known-cosmetic-noise" id="toc-entry-14">Known cosmetic noise</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#usage" id="toc-entry-13">Usage</a></li>
-<li><a class="reference internal" href="#known-issues-roadmap" id="toc-entry-14">Known issues / Roadmap</a></li>
-<li><a class="reference internal" href="#bug-tracker" id="toc-entry-15">Bug Tracker</a></li>
-<li><a class="reference internal" href="#credits" id="toc-entry-16">Credits</a><ul>
-<li><a class="reference internal" href="#authors" id="toc-entry-17">Authors</a></li>
-<li><a class="reference internal" href="#contributors" id="toc-entry-18">Contributors</a></li>
-<li><a class="reference internal" href="#other-credits" id="toc-entry-19">Other credits</a></li>
-<li><a class="reference internal" href="#maintainers" id="toc-entry-20">Maintainers</a></li>
+<li><a class="reference internal" href="#known-issues-roadmap" id="toc-entry-15">Known issues / Roadmap</a></li>
+<li><a class="reference internal" href="#changelog" id="toc-entry-16">Changelog</a><ul>
+<li><a class="reference internal" href="#section-1" id="toc-entry-17">18.0.2.4.0 (2026-09-03)</a></li>
+<li><a class="reference internal" href="#section-2" id="toc-entry-18">18.0.2.3.0 (2026-08-07)</a></li>
+<li><a class="reference internal" href="#section-3" id="toc-entry-19">18.0.2.2.0 (2026-07-13)</a></li>
+<li><a class="reference internal" href="#section-4" id="toc-entry-20">18.0.2.1.0 (2026-07-09)</a></li>
+<li><a class="reference internal" href="#section-5" id="toc-entry-21">18.0.2.0.0 (2025-12-18)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#bug-tracker" id="toc-entry-22">Bug Tracker</a></li>
+<li><a class="reference internal" href="#credits" id="toc-entry-23">Credits</a><ul>
+<li><a class="reference internal" href="#authors" id="toc-entry-24">Authors</a></li>
+<li><a class="reference internal" href="#contributors" id="toc-entry-25">Contributors</a></li>
+<li><a class="reference internal" href="#other-credits" id="toc-entry-26">Other credits</a></li>
+<li><a class="reference internal" href="#maintainers" id="toc-entry-27">Maintainers</a></li>
 </ul>
 </li>
 </ul>
@@ -420,21 +433,390 @@ pip install sentry-sdk
 <div class="section" id="configuration">
 <h1><a class="toc-backref" href="#toc-entry-2">Configuration</a></h1>
 <p>The following additional configuration options can be added to your Odoo
-configuration file:</p>
-<p>[TABLE]</p>
+configuration file (<tt class="docutils literal">[options]</tt> section). Every key is read once at
+server start, so a change needs an Odoo restart. Boolean keys accept
+<tt class="docutils literal">true</tt>/<tt class="docutils literal">false</tt> (also <tt class="docutils literal">1</tt>/<tt class="docutils literal">0</tt>, <tt class="docutils literal">yes</tt>/<tt class="docutils literal">no</tt>, <tt class="docutils literal">on</tt>/<tt class="docutils literal">off</tt>);
+log level keys accept the Odoo level names <tt class="docutils literal">debug</tt>, <tt class="docutils literal">info</tt>,
+<tt class="docutils literal">warn</tt>, <tt class="docutils literal">error</tt>, <tt class="docutils literal">critical</tt>.</p>
+<div class="section" id="core">
+<h2><a class="toc-backref" href="#toc-entry-3">Core</a></h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="15%" />
+<col width="12%" />
+<col width="73%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Option</th>
+<th class="head">Description</th>
+<th class="head">Default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal">sentry_enabled</tt></td>
+<td>Enable the integration.
+Nothing is initialized
+while it is <tt class="docutils literal">false</tt>.</td>
+<td><tt class="docutils literal">false</tt></td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_dsn</tt></td>
+<td>The DSN of the Sentry
+project (Settings →
+Projects → Client
+Keys). Required.</td>
+<td>unset</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_environment</tt></td>
+<td>Environment name shown
+in Sentry (for example
+<tt class="docutils literal">production</tt>,
+<tt class="docutils literal">staging</tt>).</td>
+<td>SDK default (<tt class="docutils literal">production</tt>, or <tt class="docutils literal">$SENTRY_ENVIRONMENT</tt>)</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_release</tt></td>
+<td>Release identifier
+attached to every
+event. Takes precedence
+over
+<tt class="docutils literal">sentry_odoo_dir</tt>.</td>
+<td>unset</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_odoo_dir</tt></td>
+<td>Path of the Odoo git
+checkout; its current
+commit SHA is used as
+release when
+<tt class="docutils literal">sentry_release</tt> is
+empty.</td>
+<td>unset</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_include_context</tt></td>
+<td>Attach Odoo request
+context (user,
+database, request data,
+tags) to error events.</td>
+<td><tt class="docutils literal">true</tt></td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_ignore_exceptions</tt></td>
+<td>Comma-separated list of
+exception classes
+(<tt class="docutils literal">module.Class</tt>)
+never reported.</td>
+<td><tt class="docutils literal">odoo.exceptions.AccessDenied, AccessError, DeferredException, MissingError, RedirectWarning, UserError, ValidationError, Warning, except_orm</tt></td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_exclude_loggers</tt></td>
+<td>Comma-separated list of
+loggers whose records
+are ignored entirely
+(events, breadcrumbs
+and Sentry Logs).</td>
+<td><tt class="docutils literal">werkzeug</tt></td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_transport</tt></td>
+<td>Deprecated and ignored
+(<tt class="docutils literal">HttpTransport</tt> is
+always used); setting
+it only emits a
+<tt class="docutils literal">DeprecationWarning</tt>.</td>
+<td>unset</td>
+</tr>
+</tbody>
+</table>
 <p>Other <a class="reference external" href="https://docs.sentry.io/platforms/python/configuration/">client
 arguments</a>
 can be configured by prepending the argument name with <em>sentry_</em> in
-your Odoo config file. Currently supported additional client arguments
-are:
-<tt class="docutils literal">include_local_variables, max_breadcrumbs, release, environment, server_name, shutdown_timeout, in_app_include, in_app_exclude, default_integrations, dist, sample_rate, send_default_pii, http_proxy, https_proxy, max_request_body_size, attach_stacktrace, ca_certs, propagate_traces, traces_sample_rate, profiles_sample_rate, auto_enabling_integrations, max_value_length</tt>.</p>
+your Odoo config file. The value is handed to <tt class="docutils literal">sentry_sdk.init()</tt>
+unchanged (numbers are converted where noted), so the SDK defaults
+apply:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="42%" />
+<col width="34%" />
+<col width="24%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Option</th>
+<th class="head">Description</th>
+<th class="head">Default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal">sentry_include_local_variables</tt></td>
+<td>Include local variables in
+stack traces.</td>
+<td><tt class="docutils literal">true</tt> (SDK)</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_max_breadcrumbs</tt></td>
+<td>Maximum number of breadcrumbs
+kept per event (integer).</td>
+<td><tt class="docutils literal">100</tt> (SDK)</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_server_name</tt></td>
+<td>Server name tag.</td>
+<td>hostname (SDK)</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_shutdown_timeout</tt></td>
+<td>Seconds to wait for pending
+events on shutdown.</td>
+<td><tt class="docutils literal">2</tt> (SDK)</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_in_app_include</tt></td>
+<td>Comma-separated module
+prefixes treated as
+application code.</td>
+<td>empty (SDK)</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_in_app_exclude</tt></td>
+<td>Comma-separated module
+prefixes treated as library
+code.</td>
+<td>empty (SDK)</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_default_integrations</tt></td>
+<td>Load the SDK default
+integrations.</td>
+<td><tt class="docutils literal">true</tt> (SDK)</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_auto_enabling_integrations</tt></td>
+<td>Auto-enable integrations for
+detected libraries.</td>
+<td><tt class="docutils literal">true</tt> (SDK)</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_dist</tt></td>
+<td>Distribution identifier.</td>
+<td>unset (SDK)</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_sample_rate</tt></td>
+<td>Fraction of <em>error</em> events
+sent (float 0.0 to 1.0).</td>
+<td><tt class="docutils literal">1.0</tt> (SDK)</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_send_default_pii</tt></td>
+<td>Send personal data (the Odoo
+login as user email on APM
+transactions and events).</td>
+<td><tt class="docutils literal">false</tt> (SDK)</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_http_proxy</tt>,
+<tt class="docutils literal">sentry_https_proxy</tt></td>
+<td>Proxy URLs for the transport.</td>
+<td>unset (SDK)</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_ca_certs</tt></td>
+<td>Path to a CA bundle for the
+transport.</td>
+<td>unset (SDK)</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_max_request_body_size</tt></td>
+<td>How much of the request body
+to attach (<tt class="docutils literal">never</tt>,
+<tt class="docutils literal">small</tt>, <tt class="docutils literal">medium</tt>,
+<tt class="docutils literal">always</tt>).</td>
+<td><tt class="docutils literal">medium</tt> (SDK)</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_max_value_length</tt></td>
+<td>Truncate string values longer
+than this (integer).</td>
+<td>SDK default
+(<tt class="docutils literal">1024</tt>)</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_attach_stacktrace</tt></td>
+<td>Attach a stack trace to
+messages captured without
+exception.</td>
+<td><tt class="docutils literal">false</tt> (SDK)</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_propagate_traces</tt></td>
+<td>Add distributed tracing
+headers to outgoing HTTP
+requests.</td>
+<td><tt class="docutils literal">true</tt> (SDK)</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_traces_sample_rate</tt></td>
+<td>Global transaction sample rate
+(float). Ignored when
+<tt class="docutils literal">sentry_apm_enabled = true</tt>,
+where the per-operation
+sampler below replaces it.</td>
+<td>unset (SDK: tracing
+off)</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_profiles_sample_rate</tt></td>
+<td>Attach performance profiles to
+sampled transactions (float
+0.0 to 1.0).</td>
+<td>unset (SDK:
+profiling off)</td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_integrations</tt></td>
+<td>Read for completeness but
+overwritten by the module’s
+own integration list (logging
++ threading); do not use.</td>
+<td>–</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="logging">
+<h2><a class="toc-backref" href="#toc-entry-4">Logging</a></h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="39%" />
+<col width="34%" />
+<col width="27%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Option</th>
+<th class="head">Description</th>
+<th class="head">Default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal">sentry_logging_level</tt></td>
+<td>Legacy key: minimum level of
+log records reported as <em>error
+events</em>. Used when
+<tt class="docutils literal">sentry_event_logging_level</tt>
+is not set.</td>
+<td><tt class="docutils literal">warn</tt></td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_event_logging_level</tt></td>
+<td>Minimum level of log records
+reported as error events;
+overrides
+<tt class="docutils literal">sentry_logging_level</tt>.</td>
+<td>falls back to
+<tt class="docutils literal">sentry_logging_level</tt></td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_breadcrumb_logging_level</tt></td>
+<td>Minimum level of log records
+kept as breadcrumbs on events.</td>
+<td><tt class="docutils literal">info</tt></td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_logs_enabled</tt></td>
+<td>Forward stdlib log records to
+the Sentry Logs product
+(requires sentry-sdk &gt;= 2.63;
+a warning is logged
+otherwise).</td>
+<td><tt class="docutils literal">false</tt></td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_logs_level</tt></td>
+<td>Minimum level forwarded to
+Sentry Logs.</td>
+<td><tt class="docutils literal">info</tt></td>
+</tr>
+</tbody>
+</table>
+<p>Loggers listed in <tt class="docutils literal">sentry_exclude_loggers</tt> are also excluded from
+Logs.</p>
+</div>
 <div class="section" id="apm-application-performance-monitoring">
-<h2><a class="toc-backref" href="#toc-entry-3">APM (Application Performance Monitoring)</a></h2>
+<h2><a class="toc-backref" href="#toc-entry-5">APM (Application Performance Monitoring)</a></h2>
 <p>To enable Sentry APM for performance monitoring, set
 <tt class="docutils literal">sentry_apm_enabled = true</tt>. This enables transaction tracing for HTTP
-requests, cron jobs, queue jobs, and SQL queries.</p>
-<div class="section" id="apm-configuration-options">
-<h3><a class="toc-backref" href="#toc-entry-4">APM Configuration Options</a></h3>
+requests, cron jobs, queue jobs, and SQL queries. Several other features
+(request/cron metrics, Crons check-ins, queue_job tags) are installed by
+the same instrumentation and therefore also need <tt class="docutils literal">sentry_apm_enabled</tt>.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="22%" />
+<col width="13%" />
+<col width="65%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Option</th>
+<th class="head">Description</th>
+<th class="head">Default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal">sentry_apm_enabled</tt></td>
+<td>Enable Sentry APM:
+per-operation traces
+sampler plus
+request, SQL, cron
+and queue_job
+instrumentation.</td>
+<td><tt class="docutils literal">false</tt></td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_traces_sample_rate_http</tt></td>
+<td>Sampling rate for
+HTTP requests (0.0
+to 1.0). Also used
+for unknown
+operation types.</td>
+<td><tt class="docutils literal">0.1</tt></td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_traces_sample_rate_cron</tt></td>
+<td>Sampling rate for
+cron job
+transactions (0.0 to
+1.0).</td>
+<td><tt class="docutils literal">0.1</tt></td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_traces_sample_rate_job</tt></td>
+<td>Sampling rate for
+queue_job requests
+(<tt class="docutils literal"><span class="pre">/queue_job/...</span></tt>)
+(0.0 to 1.0).</td>
+<td><tt class="docutils literal">0.1</tt></td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_traces_exclude_paths</tt></td>
+<td>Comma-separated path
+prefixes never
+traced (replaces the
+default list).</td>
+<td><tt class="docutils literal">/longpolling, /websocket, /web/assets, /web/static, /web/image, /web/content, /favicon.ico, /robots.txt</tt></td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_trace_orm</tt></td>
+<td>Add <tt class="docutils literal">odoo.orm</tt>
+spans
+(<tt class="docutils literal">model.method</tt>)
+for <tt class="docutils literal">create</tt>,
+<tt class="docutils literal">write</tt>,
+<tt class="docutils literal">unlink</tt>, <tt class="docutils literal">read</tt>
+and <tt class="docutils literal">_search</tt> on
+top of the SQL
+spans. Adds a
+wrapper to the
+hottest ORM methods,
+so opt-in.</td>
+<td><tt class="docutils literal">false</tt></td>
+</tr>
+<tr><td><tt class="docutils literal">sentry_profiles_sample_rate</tt></td>
+<td>Attach performance
+profiles to sampled
+transactions (0.0 to
+1.0).</td>
+<td>unset</td>
+</tr>
+</tbody>
+</table>
+<p>When APM is enabled, the following instrumentation is applied:</p>
+<ul class="simple">
+<li><strong>HTTP Request Tracking</strong>: transaction names, user context, and tags
+(<tt class="docutils literal">odoo.db</tt>, <tt class="docutils literal">odoo.path</tt>, <tt class="docutils literal">odoo.model</tt>, <tt class="docutils literal">odoo.method</tt>) are set
+for each request</li>
+<li><strong>SQL Query Tracing</strong>: database queries are captured as
+<tt class="docutils literal">db.sql.query</tt> spans for performance analysis</li>
+<li><strong>ORM Tracing</strong> (opt-in): <tt class="docutils literal">odoo.orm</tt> spans per model method on top
+of the SQL spans</li>
+<li><strong>Cron Job Transactions</strong>: each cron execution creates a separate
+<tt class="docutils literal">Cron: &lt;name&gt;</tt> transaction tagged <tt class="docutils literal">odoo.cron.name</tt>,
+<tt class="docutils literal">odoo.cron.id</tt>, <tt class="docutils literal">odoo.db</tt></li>
+<li><strong>Queue Job Tags</strong>: if the <tt class="docutils literal">queue_job</tt> module is installed,
+<tt class="docutils literal">odoo.job.model</tt>, <tt class="docutils literal">odoo.job.method</tt> and <tt class="docutils literal">odoo.job.uuid</tt> are
+tagged</li>
+</ul>
+<p>Distributed traces respect the upstream sampling decision
+(<tt class="docutils literal">parent_sampled</tt>). The user email is only sent when
+<tt class="docutils literal">sentry_send_default_pii = true</tt>. Cookies and passwords are scrubbed
+from transactions as they are from error events.</p>
+</div>
+<div class="section" id="metrics-and-system-metrics-sentry-metrics-product-sentry-sdk-2-63">
+<h2><a class="toc-backref" href="#toc-entry-6">Metrics and system metrics (Sentry Metrics product, sentry-sdk &gt;= 2.63)</a></h2>
 <table border="1" class="docutils">
 <colgroup>
 <col width="40%" />
@@ -448,161 +830,60 @@ requests, cron jobs, queue jobs, and SQL queries.</p>
 </tr>
 </thead>
 <tbody valign="top">
-<tr><td><tt class="docutils literal">sentry_apm_enabled</tt></td>
-<td>Enable Sentry APM (Application
-Performance Monitoring)</td>
-<td><tt class="docutils literal">false</tt></td>
-</tr>
-<tr><td><tt class="docutils literal">sentry_traces_sample_rate_http</tt></td>
-<td>Sampling rate for HTTP requests
-(0.0 to 1.0)</td>
-<td><tt class="docutils literal">0.1</tt></td>
-</tr>
-<tr><td><tt class="docutils literal">sentry_traces_sample_rate_cron</tt></td>
-<td>Sampling rate for cron jobs
-(0.0 to 1.0)</td>
-<td><tt class="docutils literal">0.1</tt></td>
-</tr>
-<tr><td><tt class="docutils literal">sentry_traces_sample_rate_job</tt></td>
-<td>Sampling rate for queue jobs
-(0.0 to 1.0)</td>
-<td><tt class="docutils literal">0.1</tt></td>
-</tr>
-<tr><td><tt class="docutils literal">sentry_traces_exclude_paths</tt></td>
-<td>Comma-separated path prefixes
-never traced</td>
-<td>assets, statics,
-websocket,
-longpolling,
-favicon, robots</td>
-</tr>
-<tr><td><tt class="docutils literal">sentry_trace_orm</tt></td>
-<td>Add ORM-level spans
-(<tt class="docutils literal">model.method</tt>) for
-create/write/unlink/read/search</td>
-<td><tt class="docutils literal">false</tt></td>
-</tr>
-<tr><td><tt class="docutils literal">sentry_profiles_sample_rate</tt></td>
-<td>Attach performance profiles to
-sampled transactions (0.0 to
-1.0)</td>
-<td>unset</td>
-</tr>
-<tr><td><tt class="docutils literal">sentry_breadcrumb_logging_level</tt></td>
-<td>Minimum log level for
-breadcrumbs</td>
-<td><tt class="docutils literal">info</tt></td>
-</tr>
-<tr><td><tt class="docutils literal">sentry_event_logging_level</tt></td>
-<td>Minimum log level for error
-events (falls back to
-<tt class="docutils literal">sentry_logging_level</tt>)</td>
-<td><tt class="docutils literal">warn</tt></td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="section" id="apm-features">
-<h3><a class="toc-backref" href="#toc-entry-5">APM Features</a></h3>
-<p>When APM is enabled, the following instrumentation is applied:</p>
-<ul class="simple">
-<li><strong>HTTP Request Tracking</strong>: Transaction names, user context, and tags
-(db, model, method) are set for each request</li>
-<li><strong>SQL Query Tracing</strong>: Database queries are captured as spans for
-performance analysis</li>
-<li><strong>ORM Tracing</strong> (opt-in): <tt class="docutils literal">odoo.orm</tt> spans per model method on top
-of the SQL spans</li>
-<li><strong>Cron Job Transactions</strong>: Each cron execution creates a separate
-transaction</li>
-<li><strong>Queue Job Tags</strong>: If <tt class="docutils literal">queue_job</tt> module is installed, job model
-and method are tagged</li>
-</ul>
-<p>Distributed traces respect the upstream sampling decision
-(<tt class="docutils literal">parent_sampled</tt>). The user email is only sent when
-<tt class="docutils literal">sentry_send_default_pii = true</tt>.</p>
-</div>
-</div>
-<div class="section" id="metrics-sentry-metrics-product-sentry-sdk-2-63">
-<h2><a class="toc-backref" href="#toc-entry-6">Metrics (Sentry Metrics product, sentry-sdk &gt;= 2.63)</a></h2>
-<table border="1" class="docutils">
-<colgroup>
-<col width="43%" />
-<col width="30%" />
-<col width="27%" />
-</colgroup>
-<thead valign="bottom">
-<tr><th class="head">Option</th>
-<th class="head">Description</th>
-<th class="head">Default</th>
-</tr>
-</thead>
-<tbody valign="top">
 <tr><td><tt class="docutils literal">sentry_metrics_enabled</tt></td>
 <td>Emit <tt class="docutils literal">odoo.request</tt> /
-<tt class="docutils literal">odoo.cron</tt> counters
-and duration
-distributions</td>
-<td><tt class="docutils literal">true</tt> when
-supported</td>
+<tt class="docutils literal">odoo.cron</tt> counters and
+<tt class="docutils literal">odoo.request.duration</tt> /
+<tt class="docutils literal">odoo.cron.duration</tt>
+distributions (attributes:
+scrubbed <tt class="docutils literal">path</tt>, <tt class="docutils literal">db</tt>,
+<tt class="docutils literal">cron</tt>). Only effective with
+<tt class="docutils literal">sentry_apm_enabled = true</tt>.</td>
+<td><tt class="docutils literal">true</tt> when the
+SDK supports
+metrics, else
+<tt class="docutils literal">false</tt></td>
 </tr>
 <tr><td><tt class="docutils literal">sentry_system_metrics_enabled</tt></td>
-<td>Emit host and database
-gauges from a
-background thread:
+<td>Emit host and database gauges
+from a background thread:
 <tt class="docutils literal">system.cpu.percent</tt>,
-<tt class="docutils literal">system.memory.*</tt>,
-<tt class="docutils literal">system.disk.*</tt>,
-<tt class="docutils literal">system.network.*</tt>,
-<tt class="docutils literal">db.connections.*</tt>,
-<tt class="docutils literal">db.size</tt></td>
+<tt class="docutils literal">system.memory.percent</tt>,
+<tt class="docutils literal">system.memory.used</tt>,
+<tt class="docutils literal">system.disk.percent</tt>,
+<tt class="docutils literal">system.disk.read</tt>,
+<tt class="docutils literal">system.disk.write</tt>,
+<tt class="docutils literal">system.network.sent</tt>,
+<tt class="docutils literal">system.network.received</tt>,
+<tt class="docutils literal">db.connections.active</tt>,
+<tt class="docutils literal">db.connections.idle</tt>,
+<tt class="docutils literal">db.size</tt> (per database).
+Does not need APM.</td>
 <td><tt class="docutils literal">false</tt></td>
 </tr>
 <tr><td><tt class="docutils literal">sentry_system_metrics_interval</tt></td>
 <td>Collection interval in
-seconds (minimum 10)</td>
+seconds. Values below 10 are
+raised to 10; an invalid value
+falls back to 60.</td>
 <td><tt class="docutils literal">60</tt></td>
 </tr>
 </tbody>
 </table>
-<p>Host gauges require <tt class="docutils literal">psutil</tt>; database gauges only need a database
-cursor and are tagged per database.</p>
-</div>
-<div class="section" id="logs-sentry-logs-product-sentry-sdk-2-63">
-<h2><a class="toc-backref" href="#toc-entry-7">Logs (Sentry Logs product, sentry-sdk &gt;= 2.63)</a></h2>
-<table border="1" class="docutils">
-<colgroup>
-<col width="37%" />
-<col width="47%" />
-<col width="16%" />
-</colgroup>
-<thead valign="bottom">
-<tr><th class="head">Option</th>
-<th class="head">Description</th>
-<th class="head">Default</th>
-</tr>
-</thead>
-<tbody valign="top">
-<tr><td><tt class="docutils literal">sentry_logs_enabled</tt></td>
-<td>Forward stdlib log records to
-Sentry Logs</td>
-<td><tt class="docutils literal">false</tt></td>
-</tr>
-<tr><td><tt class="docutils literal">sentry_logs_level</tt></td>
-<td>Minimum level forwarded</td>
-<td><tt class="docutils literal">info</tt></td>
-</tr>
-</tbody>
-</table>
-<p>Loggers listed in <tt class="docutils literal">sentry_exclude_loggers</tt> are also excluded from
-Logs.</p>
+<p>Host gauges require the <tt class="docutils literal">psutil</tt> Python package (when it is missing
+only the database gauges are emitted); database gauges only need a
+database cursor and are tagged per database (<tt class="docutils literal">db</tt> attribute). One
+collector thread runs per Odoo process.</p>
 </div>
 <div class="section" id="cron-monitoring-sentry-crons">
-<h2><a class="toc-backref" href="#toc-entry-8">Cron Monitoring (Sentry Crons)</a></h2>
+<h2><a class="toc-backref" href="#toc-entry-7">Cron monitoring (Sentry Crons)</a></h2>
+<p>Requires <tt class="docutils literal">sentry_apm_enabled = true</tt> (the check-ins are sent from the
+cron instrumentation).</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="40%" />
-<col width="49%" />
-<col width="11%" />
+<col width="47%" />
+<col width="38%" />
+<col width="15%" />
 </colgroup>
 <thead valign="bottom">
 <tr><th class="head">Option</th>
@@ -612,23 +893,73 @@ Logs.</p>
 </thead>
 <tbody valign="top">
 <tr><td><tt class="docutils literal">sentry_cron_monitors_enabled</tt></td>
-<td>Send a Sentry Crons check-in for every
-ir.cron run; monitors and their schedules are
-upserted automatically from the cron’s
-interval, so missed, late and failed runs
-alert without any setup in Sentry</td>
+<td>Send a Sentry Crons
+check-in for every
+<tt class="docutils literal">ir.cron</tt> run; monitors
+and their schedules are
+upserted automatically
+from the cron’s interval,
+so missed, late and failed
+runs alert without any
+setup in Sentry.</td>
 <td><tt class="docutils literal">false</tt></td>
 </tr>
 <tr><td><tt class="docutils literal">sentry_cron_monitors_include</tt></td>
-<td>Comma-separated list of cron names to
-monitor; empty means all crons</td>
+<td>Comma-separated list of
+cron names (the
+<tt class="docutils literal">ir.cron</tt> display name)
+to monitor; empty means
+all crons.</td>
 <td>all</td>
 </tr>
+</tbody>
+</table>
+<p>Monitor slugs are <tt class="docutils literal"><span class="pre">&lt;database&gt;-&lt;cron</span> name&gt;</tt> lower-cased and reduced to
+<tt class="docutils literal"><span class="pre">[a-z0-9_-]</span></tt> (max 50 characters), so the same cron on different
+databases gets distinct monitors. The upserted schedule is the cron
+interval in UTC with a 5 minute check-in margin and a 30 minute maximum
+runtime.</p>
+<p>Check-ins report the real job outcome: a run that Odoo marks as failed
+(including a run failed by timeout) closes its check-in with the error
+status, even though the exception never leaves Odoo’s cron machinery.
+Missed and overlong runs are detected by the monitor schedule and its
+max runtime.</p>
+<p>Runtime overhead is negligible (two asynchronous envelopes per run), but
+every monitored cron counts against the Sentry Crons monitor quota of
+your plan - on instances with many frequent crons, use the include list
+to monitor only the business-critical ones.</p>
+</div>
+<div class="section" id="queue-job-oca">
+<h2><a class="toc-backref" href="#toc-entry-8">queue_job (OCA)</a></h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="49%" />
+<col width="36%" />
+<col width="14%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Option</th>
+<th class="head">Description</th>
+<th class="head">Default</th>
+</tr>
+</thead>
+<tbody valign="top">
 <tr><td><tt class="docutils literal">sentry_queue_job_monitor_enabled</tt></td>
-<td>OCA queue_job monitoring: a Crons heartbeat
-for the jobrunner thread (missed check-in =
-dead runner) plus per-database backlog gauges
-<tt class="docutils literal">queue_job.pending/enqueued/started/failed</tt></td>
+<td>OCA queue_job monitoring
+from the background
+collector thread: a Sentry
+Crons heartbeat for the
+jobrunner thread (monitor
+<tt class="docutils literal"><span class="pre">odoo-queue-jobrunner</span></tt>,
+a missed check-in means
+the runner died) plus
+per-database backlog
+gauges
+<tt class="docutils literal">queue_job.pending</tt>,
+<tt class="docutils literal">queue_job.enqueued</tt>,
+<tt class="docutils literal">queue_job.started</tt>,
+<tt class="docutils literal">queue_job.failed</tt>. Does
+not need APM.</td>
 <td><tt class="docutils literal">false</tt></td>
 </tr>
 </tbody>
@@ -636,26 +967,13 @@ dead runner) plus per-database backlog gauges
 <p>Queue jobs themselves have no schedule, so they cannot be individual
 Sentry Crons monitors; the jobrunner heartbeat plus backlog gauges cover
 the operational questions instead (is the runner alive, is the queue
-draining). The heartbeat uses one monitor (<tt class="docutils literal"><span class="pre">odoo-queue-jobrunner</span></tt>).</p>
-<p>Check-ins report the real job outcome: a run that Odoo marks as failed
-closes its check-in with the error status, even though the exception
-never leaves Odoo’s cron machinery. Missed and overlong runs are
-detected by the monitor schedule and its max_runtime.</p>
-<p>Runtime overhead is negligible (two asynchronous envelopes per run), but
-every monitored cron counts against the Sentry Crons monitor quota of
-your plan - on instances with many frequent crons, use the include list
-to monitor only the business-critical ones. Monitor slugs are prefixed
-with the database name.</p>
+draining). The heartbeat is only sent from the process that runs the
+jobrunner thread, at the <tt class="docutils literal">sentry_system_metrics_interval</tt> cadence. The
+job tags and the <tt class="docutils literal">sentry_traces_sample_rate_job</tt> sampling rate
+described under APM apply to the job executions themselves.</p>
 </div>
-<div class="section" id="test-runs">
-<h2><a class="toc-backref" href="#toc-entry-9">Test runs</a></h2>
-<p>When Odoo runs with <tt class="docutils literal"><span class="pre">--test-enable</span></tt>, Sentry is not initialized: test
-suites raise expected exceptions constantly and would flood the project
-with noise. Set <tt class="docutils literal">sentry_enable_in_tests = true</tt> to opt back in (e.g.
-to test the integration itself).</p>
-</div>
-<div class="section" id="integration-mode-python-vs-javascript-app">
-<h2><a class="toc-backref" href="#toc-entry-10">Integration mode: Python vs JavaScript app</a></h2>
+<div class="section" id="integration-mode-and-browser-loader-session-replay">
+<h2><a class="toc-backref" href="#toc-entry-9">Integration mode and browser loader / Session Replay</a></h2>
 <table border="1" class="docutils">
 <colgroup>
 <col width="25%" />
@@ -675,7 +993,8 @@ browser loader is never injected
 regardless of system parameters.
 <tt class="docutils literal">javascript</tt>: additionally inject
 the Sentry Loader Script (browser
-errors, Session Replay) when
+errors, Session Replay) into every
+web page when
 <tt class="docutils literal">sentry.browser_loader_url</tt> is set.
 Unknown values fall back to
 <tt class="docutils literal">python</tt>.</td>
@@ -687,27 +1006,23 @@ Unknown values fall back to
 consistently. In <tt class="docutils literal">python</tt> mode the Sentry project should keep the
 <tt class="docutils literal">python</tt> platform; in <tt class="docutils literal">javascript</tt> mode set it to <tt class="docutils literal">javascript</tt> so
 the Replay UI is available.</p>
-</div>
-<div class="section" id="session-replay-browser">
-<h2><a class="toc-backref" href="#toc-entry-11">Session Replay (browser)</a></h2>
-<p>Session Replay only applies in <tt class="docutils literal">sentry_mode = javascript</tt>. Session
-Replay records the user’s browser session and therefore can only be
-captured by the Sentry <strong>JavaScript</strong> SDK - not by this Python addon.
-This module can inject the Sentry Loader Script into every web page:
-create the Loader in Sentry (Settings → Projects → Loader Script, enable
+<p>Session Replay records the user’s browser session and therefore can only
+be captured by the Sentry <strong>JavaScript</strong> SDK - not by this Python addon.
+In <tt class="docutils literal">javascript</tt> mode this module injects the Sentry Loader Script into
+every web page (backend, portal and website, via <tt class="docutils literal">web.layout</tt>): create
+the Loader in Sentry (Settings → Projects → Loader Script, enable
 Session Replay and choose the sample rates there) and store its URL in
 the system parameter <tt class="docutils literal">sentry.browser_loader_url</tt> (Settings → Technical
 → System Parameters). Remove the parameter to disable the injection. The
 loader also enables browser-side error and performance capture, so
 backend traces and frontend replays are linked.</p>
-<p>The Loader ships with a fixed 10% session sample rate. Two optional
-system parameters override the rates client-side (parsed in the browser;
-invalid values fall back to the defaults):</p>
+<p>The remaining settings are <tt class="docutils literal">ir.config_parameter</tt> system parameters
+(per database), all optional:</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="50%" />
-<col width="36%" />
-<col width="14%" />
+<col width="40%" />
+<col width="48%" />
+<col width="11%" />
 </colgroup>
 <thead valign="bottom">
 <tr><th class="head">System parameter</th>
@@ -716,44 +1031,43 @@ invalid values fall back to the defaults):</p>
 </tr>
 </thead>
 <tbody valign="top">
+<tr><td><tt class="docutils literal">sentry.browser_loader_url</tt></td>
+<td>URL of the Sentry Loader Script
+(<tt class="docutils literal"><span class="pre">https://js.sentry-cdn.com/&lt;key&gt;.min.js</span></tt>).
+Empty disables the injection.</td>
+<td>unset</td>
+</tr>
 <tr><td><tt class="docutils literal">sentry.replay_session_sample_rate</tt></td>
-<td>Fraction of sessions
-recorded (0.0 to 1.0)</td>
+<td>Fraction of sessions recorded (0.0 to 1.0).
+Parsed in the browser; invalid values fall
+back to the default.</td>
 <td><tt class="docutils literal">0.1</tt></td>
 </tr>
 <tr><td><tt class="docutils literal">sentry.replay_error_sample_rate</tt></td>
-<td>Fraction of error sessions
-recorded (0.0 to 1.0)</td>
+<td>Fraction of sessions with an error recorded
+(0.0 to 1.0). Parsed in the browser; invalid
+values fall back to the default.</td>
 <td><tt class="docutils literal">1.0</tt></td>
 </tr>
 <tr><td><tt class="docutils literal">sentry.replay_identify_user</tt></td>
-<td><tt class="docutils literal">true</tt>: attach the
-logged-in Odoo user (id,
-login, name - no email) to
-browser events and
-replays, so a replay can
-be searched by user.
-Personal data, hence off
-by default.</td>
+<td><tt class="docutils literal">true</tt>: attach the logged-in Odoo user (id,
+login, name - no email) to browser events and
+replays, so a replay can be searched by user.
+Public/portal visitors are never identified.
+Personal data, hence off by default.</td>
 <td><tt class="docutils literal">false</tt></td>
 </tr>
 <tr><td><tt class="docutils literal">sentry.replay_flush_on_rpc_error</tt></td>
-<td><tt class="docutils literal">true</tt>: when a
-server-side error comes
-back over RPC (Odoo’s
-error dialog), upload the
-replay buffered so far.
-Otherwise replays sampled
-“on error” are only
-uploaded for errors thrown
-in the browser itself, and
-backend failures never get
-a replay. The backend
-event and the replay are
-linked through the
-propagated trace; no
-duplicate browser error is
-created.</td>
+<td><tt class="docutils literal">true</tt>: when a server-side error comes back
+over RPC (Odoo’s error dialog), upload the
+replay buffered so far and add an
+<tt class="docutils literal">odoo.rpc</tt> breadcrumb. Otherwise replays
+sampled “on error” are only uploaded for
+errors thrown in the browser itself, and
+backend failures never get a replay. The
+backend event and the replay are linked
+through the propagated trace; no duplicate
+browser error is created.</td>
 <td><tt class="docutils literal">false</tt></td>
 </tr>
 </tbody>
@@ -763,10 +1077,39 @@ created.</td>
 crashes, turn it on when you want to see what a user did before a
 backend error dialog appeared.</p>
 </div>
+<div class="section" id="test-runs">
+<h2><a class="toc-backref" href="#toc-entry-10">Test runs</a></h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="41%" />
+<col width="43%" />
+<col width="16%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Option</th>
+<th class="head">Description</th>
+<th class="head">Default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal">sentry_enable_in_tests</tt></td>
+<td>Initialize Sentry even when
+Odoo runs with
+<tt class="docutils literal"><span class="pre">--test-enable</span></tt>
+(<tt class="docutils literal">test_enable = true</tt>).</td>
+<td><tt class="docutils literal">false</tt></td>
+</tr>
+</tbody>
+</table>
+<p>When Odoo runs with <tt class="docutils literal"><span class="pre">--test-enable</span></tt>, Sentry is not initialized: test
+suites raise expected exceptions constantly and would flood the project
+with noise. Set <tt class="docutils literal">sentry_enable_in_tests = true</tt> to opt back in (e.g.
+to test the integration itself).</p>
+</div>
 <div class="section" id="example-odoo-configuration">
-<h2><a class="toc-backref" href="#toc-entry-12">Example Odoo configuration</a></h2>
+<h2><a class="toc-backref" href="#toc-entry-11">Example Odoo configuration</a></h2>
 <p>Below is an example of Odoo configuration file with <em>Odoo Sentry</em>
-options:</p>
+options (optional keys are commented out with their default value):</p>
 <pre class="literal-block">
 [options]
 sentry_dsn = https://&lt;public_key&gt;:&lt;secret_key&gt;&#64;sentry.example.com/&lt;project id&gt;
@@ -782,33 +1125,144 @@ sentry_include_context = true
 sentry_environment = production
 sentry_release = 1.3.2
 sentry_odoo_dir = /home/odoo/odoo/
+; sentry_send_default_pii = false
+; sentry_breadcrumb_logging_level = info
+; sentry_event_logging_level = warn
 
-; APM Configuration (optional)
+; Sentry Logs (optional, sentry-sdk &gt;= 2.63)
+; sentry_logs_enabled = false
+; sentry_logs_level = info
+
+; APM (optional)
 sentry_apm_enabled = true
 sentry_traces_sample_rate_http = 0.2
 sentry_traces_sample_rate_cron = 0.1
 sentry_traces_sample_rate_job = 0.05
-sentry_trace_orm = true
-sentry_profiles_sample_rate = 0.1
+; sentry_traces_exclude_paths = /longpolling,/websocket,/web/assets,/web/static,/web/image,/web/content,/favicon.ico,/robots.txt
+; sentry_trace_orm = false
+; sentry_profiles_sample_rate = 0.1
 
-; Metrics and Logs (optional)
-sentry_metrics_enabled = true
-sentry_system_metrics_enabled = true
-sentry_system_metrics_interval = 60
-sentry_logs_enabled = true
-sentry_logs_level = warn
+; Metrics and system metrics (optional, sentry-sdk &gt;= 2.63)
+; sentry_metrics_enabled = true
+; sentry_system_metrics_enabled = false
+; sentry_system_metrics_interval = 60
+
+; Sentry Crons for ir.cron (optional, needs sentry_apm_enabled)
+; sentry_cron_monitors_enabled = false
+; sentry_cron_monitors_include = Mail: Email Queue Manager,Base: Auto-vacuum internal data
+
+; OCA queue_job monitoring (optional)
+; sentry_queue_job_monitor_enabled = false
+
+; Browser SDK / Session Replay (optional; the loader URL and replay
+; parameters are system parameters, see above)
+; sentry_mode = python
+
+; Test runs (optional)
+; sentry_enable_in_tests = false
 </pre>
 </div>
 </div>
 <div class="section" id="usage">
-<h1><a class="toc-backref" href="#toc-entry-13">Usage</a></h1>
+<h1><a class="toc-backref" href="#toc-entry-12">Usage</a></h1>
 <p>Once configured and installed, the module will report any logging event
 at and above the configured Sentry logging level, no additional actions
-are necessary.</p>
-<p><a class="reference external image-reference" href="https://runbot.odoo-community.org/runbot/149/14.0"><img alt="Try me on Runbot" src="https://odoo-community.org/website/image/ir.attachment/5784_f2813bd/datas" /></a></p>
+are necessary. On every server start an informational event <em>Starting
+Odoo Server</em> is sent, which is the quickest way to confirm that the DSN
+and the network path work.</p>
+<p><a class="reference external image-reference" href="https://runboat.odoo-community.org/webui/builds.html?repo=OCA/server-tools"><img alt="Try me on Runboat" src="https://odoo-community.org/website/image/ir.attachment/5784_f2813bd/datas" /></a></p>
+<div class="section" id="verifying-the-integration-end-to-end">
+<h2><a class="toc-backref" href="#toc-entry-13">Verifying the integration end to end</a></h2>
+<p>The list below says what each kind of failure looks like in Sentry, so a
+fresh setup can be checked feature by feature. The companion addon
+<tt class="docutils literal">`sentry_error_lab</tt> &lt;<a class="reference external" href="https://github.com/isikerkan/sentry-error-lab">https://github.com/isikerkan/sentry-error-lab</a>&gt;`__
+(not part of OCA) adds a <em>Settings → Technical → Sentry Error Lab</em> menu
+with one button per case below, so each of them can be triggered on
+demand instead of waiting for a real failure.</p>
+<ul class="simple">
+<li><strong>Python exception</strong> (an unhandled exception in a controller or model
+method, for example a <tt class="docutils literal">ZeroDivisionError</tt>): an <em>Issue</em> on the Python
+project with the full stack trace and local variables. With
+<tt class="docutils literal">sentry_include_context</tt> the event carries the Odoo user and request
+data; with <tt class="docutils literal">sentry_apm_enabled</tt> it is also tagged <tt class="docutils literal">odoo.db</tt>,
+<tt class="docutils literal">odoo.path</tt>, <tt class="docutils literal">odoo.model</tt> and <tt class="docutils literal">odoo.method</tt>. Exceptions listed
+in <tt class="docutils literal">sentry_ignore_exceptions</tt> (<tt class="docutils literal">UserError</tt>, <tt class="docutils literal">ValidationError</tt>,
+…) are not reported - they are user feedback, not bugs.</li>
+<li><strong>Logged error</strong> (<tt class="docutils literal"><span class="pre">_logger.error(&quot;...&quot;)</span></tt> without an exception): an
+<em>Issue</em> whose title is the log message, grouped by logger and message.
+Records at the <tt class="docutils literal">sentry_breadcrumb_logging_level</tt> appear as
+breadcrumbs on the next event instead. With <tt class="docutils literal">sentry_logs_enabled</tt>
+the same records also show up on the <em>Logs</em> page, searchable by
+logger, level and message.</li>
+<li><strong>Cron failure</strong> (an <tt class="docutils literal">ir.cron</tt> method that raises): an <em>Issue</em> for
+the exception, plus - with <tt class="docutils literal">sentry_cron_monitors_enabled</tt> - a
+check-in with status <em>error</em> on the Crons monitor
+<tt class="docutils literal"><span class="pre">&lt;database&gt;-&lt;cron</span> name&gt;</tt>. Missed runs (the cron did not start on
+schedule) and runs longer than 30 minutes are flagged on the monitor
+without any event being raised. Sampled runs additionally appear in
+<em>Performance</em> as the transaction <tt class="docutils literal">Cron: &lt;name&gt;</tt>.</li>
+<li><strong>queue_job failure</strong> (a job that raises): an <em>Issue</em> tagged
+<tt class="docutils literal">odoo.job.model</tt>, <tt class="docutils literal">odoo.job.method</tt> and <tt class="docutils literal">odoo.job.uuid</tt>
+(requires <tt class="docutils literal">sentry_apm_enabled</tt>); sampled executions appear as
+<tt class="docutils literal">/queue_job/runjob</tt> transactions. With
+<tt class="docutils literal">sentry_queue_job_monitor_enabled</tt> the gauge <tt class="docutils literal">queue_job.failed</tt>
+for that database increases on the next collector tick, and the
+monitor <tt class="docutils literal"><span class="pre">odoo-queue-jobrunner</span></tt> keeps receiving check-ins while the
+jobrunner thread is alive - a <em>missed</em> check-in there means the runner
+died.</li>
+<li><strong>Slow request or trace</strong> (<tt class="docutils literal">sentry_apm_enabled</tt>): an entry in
+<em>Performance</em> / <em>Traces</em> named after the request path (numeric ids
+intact in the transaction name, replaced by <tt class="docutils literal">:id</tt> in the metrics
+attributes), with <tt class="docutils literal">db.sql.query</tt> spans for every query, <tt class="docutils literal">odoo.orm</tt>
+spans when <tt class="docutils literal">sentry_trace_orm</tt> is on, and a profile when
+<tt class="docutils literal">sentry_profiles_sample_rate</tt> is set. Only the configured fraction
+of requests is sampled (<tt class="docutils literal">sentry_traces_sample_rate_http</tt>), so run a
+slow action a few times or raise the rate temporarily. Request counts
+and durations are on the <em>Metrics</em> page as <tt class="docutils literal">odoo.request</tt> and
+<tt class="docutils literal">odoo.request.duration</tt>.</li>
+<li><strong>System metrics</strong> (<tt class="docutils literal">sentry_system_metrics_enabled</tt>): the gauges
+<tt class="docutils literal">system.*</tt> and <tt class="docutils literal">db.*</tt> appear on the <em>Metrics</em> page after the first
+two collection intervals (disk and network are deltas and need a
+previous sample).</li>
+<li><strong>Browser error</strong> (<tt class="docutils literal">sentry_mode = javascript</tt> and
+<tt class="docutils literal">sentry.browser_loader_url</tt> set): an <em>Issue</em> on the JavaScript side
+(platform <tt class="docutils literal">javascript</tt>) for uncaught exceptions, unhandled promise
+rejections and errors thrown in OWL components, with the minified Odoo
+asset frames. Verify the injection by looking for the
+<tt class="docutils literal"><span class="pre">js.sentry-cdn.com</span></tt> script in the page source.</li>
+<li><strong>Session Replay</strong>: the <em>Replays</em> tab lists recorded sessions
+according to <tt class="docutils literal">sentry.replay_session_sample_rate</tt>, and a replay is
+attached to browser errors according to
+<tt class="docutils literal">sentry.replay_error_sample_rate</tt>. With
+<tt class="docutils literal">sentry.replay_flush_on_rpc_error</tt> a replay is also uploaded when
+the Odoo error dialog shows a <em>backend</em> error, and is linked to the
+Python issue through the propagated trace; with
+<tt class="docutils literal">sentry.replay_identify_user</tt> replays can be searched by Odoo user
+id or login.</li>
+</ul>
+</div>
+<div class="section" id="known-cosmetic-noise">
+<h2><a class="toc-backref" href="#toc-entry-14">Known cosmetic noise</a></h2>
+<ul class="simple">
+<li><strong>Shutdown tracebacks</strong>: when the server is stopped, the cron worker
+and the connection pool can log
+<tt class="docutils literal">psycopg2.InterfaceError: connection already closed</tt> (or similar)
+tracebacks while the process is going down. They are reported as
+regular error events although nothing is wrong. Ignore the issue in
+Sentry or add <tt class="docutils literal">psycopg2.InterfaceError</tt> to
+<tt class="docutils literal">sentry_ignore_exceptions</tt> if they are frequent (for example on
+development machines that are restarted often).</li>
+<li><strong>Starting Odoo Server</strong>: one informational event per process start,
+by design. Filter on <tt class="docutils literal">level:info</tt> to hide it.</li>
+<li><strong>Duplicate host gauges in multi-process deployments</strong>: the system
+metrics collector runs in every Odoo process that executed the
+module’s <tt class="docutils literal">post_load</tt> hook; if several such processes run on one
+host, the <tt class="docutils literal">system.*</tt> gauges are emitted once per process.</li>
+</ul>
+</div>
 </div>
 <div class="section" id="known-issues-roadmap">
-<h1><a class="toc-backref" href="#toc-entry-14">Known issues / Roadmap</a></h1>
+<h1><a class="toc-backref" href="#toc-entry-15">Known issues / Roadmap</a></h1>
 <ul class="simple">
 <li><strong>No database separation</strong> – This module functions by intercepting
 all Odoo logging records in a running Odoo process. This means that
@@ -824,8 +1278,89 @@ and upload source maps for the minified Odoo asset bundles so browser
 stack traces resolve to readable frames.</li>
 </ul>
 </div>
+<div class="section" id="changelog">
+<h1><a class="toc-backref" href="#toc-entry-16">Changelog</a></h1>
+<div class="section" id="section-1">
+<h2><a class="toc-backref" href="#toc-entry-17">18.0.2.4.0 (2026-09-03)</a></h2>
+<ul class="simple">
+<li>Session Replay: opt-in identification of the logged-in Odoo user
+(<tt class="docutils literal">sentry.replay_identify_user</tt>) and upload of the buffered replay
+when a backend error reaches the browser over RPC
+(<tt class="docutils literal">sentry.replay_flush_on_rpc_error</tt>).</li>
+<li>Cron transactions run in a forked scope so the transaction name no
+longer leaks into later errors on the same cron thread.</li>
+</ul>
+</div>
+<div class="section" id="section-2">
+<h2><a class="toc-backref" href="#toc-entry-18">18.0.2.3.0 (2026-08-07)</a></h2>
+<ul class="simple">
+<li><tt class="docutils literal">sentry_mode</tt> (<tt class="docutils literal">python</tt> / <tt class="docutils literal">javascript</tt>): the browser loader is
+only injected in <tt class="docutils literal">javascript</tt> mode; <tt class="docutils literal">python</tt> (default) keeps the
+module a pure backend integration.</li>
+<li>Sentry Crons check-ins for <tt class="docutils literal">ir.cron</tt> runs
+(<tt class="docutils literal">sentry_cron_monitors_enabled</tt>, <tt class="docutils literal">sentry_cron_monitors_include</tt>);
+monitors and schedules are upserted from the cron interval and
+check-ins report the real job outcome, including runs failed by
+timeout.</li>
+<li>OCA queue_job monitoring (<tt class="docutils literal">sentry_queue_job_monitor_enabled</tt>):
+jobrunner heartbeat monitor and per-database backlog gauges; queue_job
+executions are tagged with model, method and uuid.</li>
+<li>Sentry is not initialized while Odoo runs with <tt class="docutils literal"><span class="pre">--test-enable</span></tt>
+unless <tt class="docutils literal">sentry_enable_in_tests</tt> is set.</li>
+<li>APM patches are idempotent when <tt class="docutils literal">post_load</tt> runs more than once.</li>
+</ul>
+</div>
+<div class="section" id="section-3">
+<h2><a class="toc-backref" href="#toc-entry-19">18.0.2.2.0 (2026-07-13)</a></h2>
+<ul class="simple">
+<li>Host and database gauges from a background collector
+(<tt class="docutils literal">sentry_system_metrics_enabled</tt>,
+<tt class="docutils literal">sentry_system_metrics_interval</tt>).</li>
+<li>Sentry Loader Script injection for browser errors and Session Replay
+(<tt class="docutils literal">sentry.browser_loader_url</tt>), with configurable replay sample rates
+(<tt class="docutils literal">sentry.replay_session_sample_rate</tt>,
+<tt class="docutils literal">sentry.replay_error_sample_rate</tt>) passed to the browser as data
+attributes.</li>
+</ul>
+</div>
+<div class="section" id="section-4">
+<h2><a class="toc-backref" href="#toc-entry-20">18.0.2.1.0 (2026-07-09)</a></h2>
+<ul class="simple">
+<li>Compatibility with Odoo 18 request handling and sentry-sdk 2.x: WSGI
+middleware applied at the <tt class="docutils literal">odoo.http.Application</tt> level,
+<tt class="docutils literal">_serve_db</tt> / <tt class="docutils literal">_serve_nodb</tt> instrumentation, <tt class="docutils literal">TransactionSource</tt>
+enum, span <tt class="docutils literal">name</tt> keyword, <tt class="docutils literal">propagate_scope</tt>; dependency range
+widened to <tt class="docutils literal"><span class="pre">sentry_sdk&gt;=2.0.0,&lt;3.0.0</span></tt>.</li>
+<li>Profiling (<tt class="docutils literal">sentry_profiles_sample_rate</tt>) and
+<tt class="docutils literal">before_send_transaction</tt> scrubbing of cookies and passwords on
+transactions.</li>
+<li>Sentry Metrics: <tt class="docutils literal">odoo.request</tt> / <tt class="docutils literal">odoo.cron</tt> counters and duration
+distributions (<tt class="docutils literal">sentry_metrics_enabled</tt>); zero-cost fast path for
+SQL spans on unsampled transactions; default exclusion of asset,
+static, websocket and longpolling paths
+(<tt class="docutils literal">sentry_traces_exclude_paths</tt>).</li>
+<li>Sentry Logs forwarding (<tt class="docutils literal">sentry_logs_enabled</tt>,
+<tt class="docutils literal">sentry_logs_level</tt>).</li>
+<li>Separate breadcrumb and event log levels
+(<tt class="docutils literal">sentry_breadcrumb_logging_level</tt>, <tt class="docutils literal">sentry_event_logging_level</tt>)
+and opt-in ORM spans (<tt class="docutils literal">sentry_trace_orm</tt>).</li>
+<li>Boolean config keys are parsed as booleans, so
+<tt class="docutils literal">sentry_enabled = false</tt> is honoured; cron jobs with a NULL name no
+longer break the cron patch.</li>
+</ul>
+</div>
+<div class="section" id="section-5">
+<h2><a class="toc-backref" href="#toc-entry-21">18.0.2.0.0 (2025-12-18)</a></h2>
+<ul class="simple">
+<li>APM (Application Performance Monitoring): per-operation traces sampler
+(<tt class="docutils literal">sentry_apm_enabled</tt>, <tt class="docutils literal">sentry_traces_sample_rate_http</tt> /
+<tt class="docutils literal">_cron</tt> / <tt class="docutils literal">_job</tt>), HTTP transaction names, user context and tags,
+SQL query spans, cron transactions and queue_job tags.</li>
+</ul>
+</div>
+</div>
 <div class="section" id="bug-tracker">
-<h1><a class="toc-backref" href="#toc-entry-15">Bug Tracker</a></h1>
+<h1><a class="toc-backref" href="#toc-entry-22">Bug Tracker</a></h1>
 <p>Bugs are tracked on <a class="reference external" href="https://github.com/OCA/server-tools/issues">GitHub Issues</a>.
 In case of trouble, please check there if your issue has already been reported.
 If you spotted it first, help us to smash it by providing a detailed and welcomed
@@ -833,9 +1368,9 @@ If you spotted it first, help us to smash it by providing a detailed and welcome
 <p>Do not contact contributors directly about support or help with technical issues.</p>
 </div>
 <div class="section" id="credits">
-<h1><a class="toc-backref" href="#toc-entry-16">Credits</a></h1>
+<h1><a class="toc-backref" href="#toc-entry-23">Credits</a></h1>
 <div class="section" id="authors">
-<h2><a class="toc-backref" href="#toc-entry-17">Authors</a></h2>
+<h2><a class="toc-backref" href="#toc-entry-24">Authors</a></h2>
 <ul class="simple">
 <li>Mohammed Barsi</li>
 <li>Versada</li>
@@ -844,7 +1379,7 @@ If you spotted it first, help us to smash it by providing a detailed and welcome
 </ul>
 </div>
 <div class="section" id="contributors">
-<h2><a class="toc-backref" href="#toc-entry-18">Contributors</a></h2>
+<h2><a class="toc-backref" href="#toc-entry-25">Contributors</a></h2>
 <ul class="simple">
 <li>Mohammed Barsi &lt;<a class="reference external" href="mailto:barsintod&#64;gmail.com">barsintod&#64;gmail.com</a>&gt;</li>
 <li>Andrius Preimantas &lt;<a class="reference external" href="mailto:andrius&#64;versada.eu">andrius&#64;versada.eu</a>&gt;</li>
@@ -854,16 +1389,17 @@ If you spotted it first, help us to smash it by providing a detailed and welcome
 <li>Jon Ashton &lt;<a class="reference external" href="mailto:jon&#64;monkeyinferno.com">jon&#64;monkeyinferno.com</a>&gt;</li>
 <li>Mark Schuit &lt;<a class="reference external" href="mailto:mark&#64;gig.solutions">mark&#64;gig.solutions</a>&gt;</li>
 <li>Atchuthan &lt;<a class="reference external" href="mailto:atchuthan&#64;sodexis.com">atchuthan&#64;sodexis.com</a>&gt;</li>
+<li>Erkan Isik &lt;<a class="reference external" href="mailto:isik.4900&#64;outlook.com">isik.4900&#64;outlook.com</a>&gt;</li>
 </ul>
 </div>
 <div class="section" id="other-credits">
-<h2><a class="toc-backref" href="#toc-entry-19">Other credits</a></h2>
+<h2><a class="toc-backref" href="#toc-entry-26">Other credits</a></h2>
 <ul class="simple">
 <li>Vauxoo</li>
 </ul>
 </div>
 <div class="section" id="maintainers">
-<h2><a class="toc-backref" href="#toc-entry-20">Maintainers</a></h2>
+<h2><a class="toc-backref" href="#toc-entry-27">Maintainers</a></h2>
 <p>This module is maintained by the OCA.</p>
 <a class="reference external image-reference" href="https://odoo-community.org">
 <img alt="Odoo Community Association" src="https://odoo-community.org/logo.png" />
