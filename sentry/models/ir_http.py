@@ -8,11 +8,24 @@ from ..const import SENTRY_MODE_JAVASCRIPT, get_sentry_mode
 
 REPLAY_IDENTIFY_USER_PARAM = "sentry.replay_identify_user"
 REPLAY_FLUSH_ON_RPC_ERROR_PARAM = "sentry.replay_flush_on_rpc_error"
+FEEDBACK_WIDGET_PARAM = "sentry.feedback_widget"
 TRUE_VALUES = ("1", "true", "yes", "on")
+FALSE_VALUES = ("0", "false", "no", "off")
 
 
 def _param_is_true(value):
     return str(value or "").strip().lower() in TRUE_VALUES
+
+
+def _param_tristate(value):
+    """True / False when the parameter holds a boolean, None when it is
+    unset or unrecognised (leave the Loader Script default alone)."""
+    text = str(value or "").strip().lower()
+    if text in TRUE_VALUES:
+        return True
+    if text in FALSE_VALUES:
+        return False
+    return None
 
 
 class IrHttp(models.AbstractModel):
@@ -47,14 +60,23 @@ class IrHttp(models.AbstractModel):
           buffered so far. Without it, replays recorded in buffer mode
           are only uploaded for errors thrown in the browser itself,
           so backend failures never get a replay.
+        - sentry.feedback_widget: false hides the Loader's "Report a Bug"
+          user-feedback button, true forces it; unset keeps whatever the
+          Loader Script is configured to do in Sentry.
 
         Called from QWeb, hence public.
         """
         params = self.env["ir.config_parameter"].sudo()
         identify = _param_is_true(params.get_param(REPLAY_IDENTIFY_USER_PARAM))
         flush = _param_is_true(params.get_param(REPLAY_FLUSH_ON_RPC_ERROR_PARAM))
+        feedback = _param_tristate(params.get_param(FEEDBACK_WIDGET_PARAM))
         user = None
         if identify and self.env.uid and not self.env.user._is_public():
             current = self.env.user
             user = {"id": current.id, "login": current.login, "name": current.name}
-        return {"identify_user": identify, "flush_on_rpc_error": flush, "user": user}
+        return {
+            "identify_user": identify,
+            "flush_on_rpc_error": flush,
+            "feedback_widget": feedback,
+            "user": user,
+        }
