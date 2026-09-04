@@ -399,19 +399,20 @@ and Session Replay.</p>
 </li>
 <li><a class="reference internal" href="#known-issues-roadmap" id="toc-entry-15">Known issues / Roadmap</a></li>
 <li><a class="reference internal" href="#changelog" id="toc-entry-16">Changelog</a><ul>
-<li><a class="reference internal" href="#section-1" id="toc-entry-17">18.0.2.4.0 (2026-09-03)</a></li>
-<li><a class="reference internal" href="#section-2" id="toc-entry-18">18.0.2.3.0 (2026-08-07)</a></li>
-<li><a class="reference internal" href="#section-3" id="toc-entry-19">18.0.2.2.0 (2026-07-13)</a></li>
-<li><a class="reference internal" href="#section-4" id="toc-entry-20">18.0.2.1.0 (2026-07-09)</a></li>
-<li><a class="reference internal" href="#section-5" id="toc-entry-21">18.0.2.0.0 (2025-12-18)</a></li>
+<li><a class="reference internal" href="#section-1" id="toc-entry-17">18.0.2.5.0</a></li>
+<li><a class="reference internal" href="#section-2" id="toc-entry-18">18.0.2.4.0 (2026-09-03)</a></li>
+<li><a class="reference internal" href="#section-3" id="toc-entry-19">18.0.2.3.0 (2026-08-07)</a></li>
+<li><a class="reference internal" href="#section-4" id="toc-entry-20">18.0.2.2.0 (2026-07-13)</a></li>
+<li><a class="reference internal" href="#section-5" id="toc-entry-21">18.0.2.1.0 (2026-07-09)</a></li>
+<li><a class="reference internal" href="#section-6" id="toc-entry-22">18.0.2.0.0 (2025-12-18)</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#bug-tracker" id="toc-entry-22">Bug Tracker</a></li>
-<li><a class="reference internal" href="#credits" id="toc-entry-23">Credits</a><ul>
-<li><a class="reference internal" href="#authors" id="toc-entry-24">Authors</a></li>
-<li><a class="reference internal" href="#contributors" id="toc-entry-25">Contributors</a></li>
-<li><a class="reference internal" href="#other-credits" id="toc-entry-26">Other credits</a></li>
-<li><a class="reference internal" href="#maintainers" id="toc-entry-27">Maintainers</a></li>
+<li><a class="reference internal" href="#bug-tracker" id="toc-entry-23">Bug Tracker</a></li>
+<li><a class="reference internal" href="#credits" id="toc-entry-24">Credits</a><ul>
+<li><a class="reference internal" href="#authors" id="toc-entry-25">Authors</a></li>
+<li><a class="reference internal" href="#contributors" id="toc-entry-26">Contributors</a></li>
+<li><a class="reference internal" href="#other-credits" id="toc-entry-27">Other credits</a></li>
+<li><a class="reference internal" href="#maintainers" id="toc-entry-28">Maintainers</a></li>
 </ul>
 </li>
 </ul>
@@ -1070,6 +1071,14 @@ through the propagated trace; no duplicate
 browser error is created.</td>
 <td><tt class="docutils literal">false</tt></td>
 </tr>
+<tr><td><tt class="docutils literal">sentry.feedback_widget</tt></td>
+<td><tt class="docutils literal">false</tt> hides the Loader Script’s “Report a
+Bug” user-feedback button, <tt class="docutils literal">true</tt> forces it
+on. Unset: whatever the Loader Script is
+configured to do in Sentry (Settings →
+Projects → Loader Script).</td>
+<td>unset</td>
+</tr>
 </tbody>
 </table>
 <p>Replay is a recording of the <em>user’s</em> session: leave
@@ -1175,10 +1184,11 @@ and the network path work.</p>
 <h2><a class="toc-backref" href="#toc-entry-13">Verifying the integration end to end</a></h2>
 <p>The list below says what each kind of failure looks like in Sentry, so a
 fresh setup can be checked feature by feature. The companion addon
-<tt class="docutils literal">`sentry_error_lab</tt> &lt;<a class="reference external" href="https://github.com/isikerkan/sentry-error-lab">https://github.com/isikerkan/sentry-error-lab</a>&gt;`__
-(not part of OCA) adds a <em>Settings → Technical → Sentry Error Lab</em> menu
-with one button per case below, so each of them can be triggered on
-demand instead of waiting for a real failure.</p>
+<a class="reference external" href="https://github.com/isikerkan/sentry-error-lab">sentry_error_lab</a>
+(not part of OCA, repository access on request) adds a <em>Settings →
+Technical → Sentry Error Lab</em> menu with one button per case below, so
+each of them can be triggered on demand instead of waiting for a real
+failure.</p>
 <ul class="simple">
 <li><strong>Python exception</strong> (an unhandled exception in a controller or model
 method, for example a <tt class="docutils literal">ZeroDivisionError</tt>): an <em>Issue</em> on the Python
@@ -1228,8 +1238,11 @@ previous sample).</li>
 <tt class="docutils literal">sentry.browser_loader_url</tt> set): an <em>Issue</em> on the JavaScript side
 (platform <tt class="docutils literal">javascript</tt>) for uncaught exceptions, unhandled promise
 rejections and errors thrown in OWL components, with the minified Odoo
-asset frames. Verify the injection by looking for the
-<tt class="docutils literal"><span class="pre">js.sentry-cdn.com</span></tt> script in the page source.</li>
+asset frames. Verify the injection by looking for a <tt class="docutils literal">&lt;script&gt;</tt>
+element whose <tt class="docutils literal">src</tt> is the configured <tt class="docutils literal">sentry.browser_loader_url</tt>
+in the page source (the Loader Script is usually served from
+<tt class="docutils literal"><span class="pre">js.sentry-cdn.com</span></tt>, but any URL stored in the parameter is injected
+as is).</li>
 <li><strong>Session Replay</strong>: the <em>Replays</em> tab lists recorded sessions
 according to <tt class="docutils literal">sentry.replay_session_sample_rate</tt>, and a replay is
 attached to browser errors according to
@@ -1281,7 +1294,14 @@ stack traces resolve to readable frames.</li>
 <div class="section" id="changelog">
 <h1><a class="toc-backref" href="#toc-entry-16">Changelog</a></h1>
 <div class="section" id="section-1">
-<h2><a class="toc-backref" href="#toc-entry-17">18.0.2.4.0 (2026-09-03)</a></h2>
+<h2><a class="toc-backref" href="#toc-entry-17">18.0.2.5.0</a></h2>
+<ul class="simple">
+<li><tt class="docutils literal">sentry.feedback_widget</tt> system parameter: hide (or force) the
+Loader Script’s “Report a Bug” user-feedback button per instance.</li>
+</ul>
+</div>
+<div class="section" id="section-2">
+<h2><a class="toc-backref" href="#toc-entry-18">18.0.2.4.0 (2026-09-03)</a></h2>
 <ul class="simple">
 <li>Session Replay: opt-in identification of the logged-in Odoo user
 (<tt class="docutils literal">sentry.replay_identify_user</tt>) and upload of the buffered replay
@@ -1291,8 +1311,8 @@ when a backend error reaches the browser over RPC
 longer leaks into later errors on the same cron thread.</li>
 </ul>
 </div>
-<div class="section" id="section-2">
-<h2><a class="toc-backref" href="#toc-entry-18">18.0.2.3.0 (2026-08-07)</a></h2>
+<div class="section" id="section-3">
+<h2><a class="toc-backref" href="#toc-entry-19">18.0.2.3.0 (2026-08-07)</a></h2>
 <ul class="simple">
 <li><tt class="docutils literal">sentry_mode</tt> (<tt class="docutils literal">python</tt> / <tt class="docutils literal">javascript</tt>): the browser loader is
 only injected in <tt class="docutils literal">javascript</tt> mode; <tt class="docutils literal">python</tt> (default) keeps the
@@ -1310,8 +1330,8 @@ unless <tt class="docutils literal">sentry_enable_in_tests</tt> is set.</li>
 <li>APM patches are idempotent when <tt class="docutils literal">post_load</tt> runs more than once.</li>
 </ul>
 </div>
-<div class="section" id="section-3">
-<h2><a class="toc-backref" href="#toc-entry-19">18.0.2.2.0 (2026-07-13)</a></h2>
+<div class="section" id="section-4">
+<h2><a class="toc-backref" href="#toc-entry-20">18.0.2.2.0 (2026-07-13)</a></h2>
 <ul class="simple">
 <li>Host and database gauges from a background collector
 (<tt class="docutils literal">sentry_system_metrics_enabled</tt>,
@@ -1323,8 +1343,8 @@ unless <tt class="docutils literal">sentry_enable_in_tests</tt> is set.</li>
 attributes.</li>
 </ul>
 </div>
-<div class="section" id="section-4">
-<h2><a class="toc-backref" href="#toc-entry-20">18.0.2.1.0 (2026-07-09)</a></h2>
+<div class="section" id="section-5">
+<h2><a class="toc-backref" href="#toc-entry-21">18.0.2.1.0 (2026-07-09)</a></h2>
 <ul class="simple">
 <li>Compatibility with Odoo 18 request handling and sentry-sdk 2.x: WSGI
 middleware applied at the <tt class="docutils literal">odoo.http.Application</tt> level,
@@ -1349,8 +1369,8 @@ and opt-in ORM spans (<tt class="docutils literal">sentry_trace_orm</tt>).</li>
 longer break the cron patch.</li>
 </ul>
 </div>
-<div class="section" id="section-5">
-<h2><a class="toc-backref" href="#toc-entry-21">18.0.2.0.0 (2025-12-18)</a></h2>
+<div class="section" id="section-6">
+<h2><a class="toc-backref" href="#toc-entry-22">18.0.2.0.0 (2025-12-18)</a></h2>
 <ul class="simple">
 <li>APM (Application Performance Monitoring): per-operation traces sampler
 (<tt class="docutils literal">sentry_apm_enabled</tt>, <tt class="docutils literal">sentry_traces_sample_rate_http</tt> /
@@ -1360,7 +1380,7 @@ SQL query spans, cron transactions and queue_job tags.</li>
 </div>
 </div>
 <div class="section" id="bug-tracker">
-<h1><a class="toc-backref" href="#toc-entry-22">Bug Tracker</a></h1>
+<h1><a class="toc-backref" href="#toc-entry-23">Bug Tracker</a></h1>
 <p>Bugs are tracked on <a class="reference external" href="https://github.com/OCA/server-tools/issues">GitHub Issues</a>.
 In case of trouble, please check there if your issue has already been reported.
 If you spotted it first, help us to smash it by providing a detailed and welcomed
@@ -1368,9 +1388,9 @@ If you spotted it first, help us to smash it by providing a detailed and welcome
 <p>Do not contact contributors directly about support or help with technical issues.</p>
 </div>
 <div class="section" id="credits">
-<h1><a class="toc-backref" href="#toc-entry-23">Credits</a></h1>
+<h1><a class="toc-backref" href="#toc-entry-24">Credits</a></h1>
 <div class="section" id="authors">
-<h2><a class="toc-backref" href="#toc-entry-24">Authors</a></h2>
+<h2><a class="toc-backref" href="#toc-entry-25">Authors</a></h2>
 <ul class="simple">
 <li>Mohammed Barsi</li>
 <li>Versada</li>
@@ -1379,7 +1399,7 @@ If you spotted it first, help us to smash it by providing a detailed and welcome
 </ul>
 </div>
 <div class="section" id="contributors">
-<h2><a class="toc-backref" href="#toc-entry-25">Contributors</a></h2>
+<h2><a class="toc-backref" href="#toc-entry-26">Contributors</a></h2>
 <ul class="simple">
 <li>Mohammed Barsi &lt;<a class="reference external" href="mailto:barsintod&#64;gmail.com">barsintod&#64;gmail.com</a>&gt;</li>
 <li>Andrius Preimantas &lt;<a class="reference external" href="mailto:andrius&#64;versada.eu">andrius&#64;versada.eu</a>&gt;</li>
@@ -1393,13 +1413,13 @@ If you spotted it first, help us to smash it by providing a detailed and welcome
 </ul>
 </div>
 <div class="section" id="other-credits">
-<h2><a class="toc-backref" href="#toc-entry-26">Other credits</a></h2>
+<h2><a class="toc-backref" href="#toc-entry-27">Other credits</a></h2>
 <ul class="simple">
 <li>Vauxoo</li>
 </ul>
 </div>
 <div class="section" id="maintainers">
-<h2><a class="toc-backref" href="#toc-entry-27">Maintainers</a></h2>
+<h2><a class="toc-backref" href="#toc-entry-28">Maintainers</a></h2>
 <p>This module is maintained by the OCA.</p>
 <a class="reference external image-reference" href="https://odoo-community.org">
 <img alt="Odoo Community Association" src="https://odoo-community.org/logo.png" />

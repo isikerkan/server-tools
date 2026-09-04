@@ -173,6 +173,7 @@ database), all optional:
 | `sentry.replay_error_sample_rate` | Fraction of sessions with an error recorded (0.0 to 1.0). Parsed in the browser; invalid values fall back to the default. | `1.0` |
 | `sentry.replay_identify_user` | `true`: attach the logged-in Odoo user (id, login, name - no email) to browser events and replays, so a replay can be searched by user. Public/portal visitors are never identified. Personal data, hence off by default. | `false` |
 | `sentry.replay_flush_on_rpc_error` | `true`: when a server-side error comes back over RPC (Odoo's error dialog), upload the replay buffered so far and add an `odoo.rpc` breadcrumb. Otherwise replays sampled "on error" are only uploaded for errors thrown in the browser itself, and backend failures never get a replay. The backend event and the replay are linked through the propagated trace; no duplicate browser error is created. | `false` |
+| `sentry.feedback_widget` | `false` hides the Loader Script's "Report a Bug" user-feedback button, `true` forces it on. Unset: whatever the Loader Script is configured to do in Sentry (Settings → Projects → Loader Script). | unset |
 
 Replay is a recording of the *user's* session: leave
 `sentry.replay_flush_on_rpc_error` off if you only care about frontend

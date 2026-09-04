@@ -10,8 +10,8 @@ and the network path work.
 
 The list below says what each kind of failure looks like in Sentry, so
 a fresh setup can be checked feature by feature. The companion addon
-[`sentry_error_lab`](https://github.com/isikerkan/sentry-error-lab)
-(not part of OCA) adds a *Settings → Technical → Sentry Error Lab* menu
+[sentry_error_lab](https://github.com/isikerkan/sentry-error-lab)
+(not part of OCA, repository access on request) adds a *Settings → Technical → Sentry Error Lab* menu
 with one button per case below, so each of them can be triggered on
 demand instead of waiting for a real failure.
 
@@ -62,8 +62,11 @@ demand instead of waiting for a real failure.
   `sentry.browser_loader_url` set): an *Issue* on the JavaScript side
   (platform `javascript`) for uncaught exceptions, unhandled promise
   rejections and errors thrown in OWL components, with the minified
-  Odoo asset frames. Verify the injection by looking for the
-  `js.sentry-cdn.com` script in the page source.
+  Odoo asset frames. Verify the injection by looking for a `<script>`
+  element whose `src` is the configured `sentry.browser_loader_url` in
+  the page source (the Loader Script is usually served from
+  `js.sentry-cdn.com`, but any URL stored in the parameter is injected
+  as is).
 - **Session Replay**: the *Replays* tab lists recorded sessions
   according to `sentry.replay_session_sample_rate`, and a replay is
   attached to browser errors according to

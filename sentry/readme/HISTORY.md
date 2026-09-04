@@ -1,3 +1,8 @@
+## 18.0.2.5.0
+
+- `sentry.feedback_widget` system parameter: hide (or force) the Loader
+  Script's "Report a Bug" user-feedback button per instance.
+
 ## 18.0.2.4.0 (2026-09-03)
 
 - Session Replay: opt-in identification of the logged-in Odoo user
