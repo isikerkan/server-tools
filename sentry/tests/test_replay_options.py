@@ -3,7 +3,11 @@
 
 from odoo.tests import TransactionCase
 
-from ..models.ir_http import REPLAY_FLUSH_ON_RPC_ERROR_PARAM, REPLAY_IDENTIFY_USER_PARAM
+from ..models.ir_http import (
+    FEEDBACK_WIDGET_PARAM,
+    REPLAY_FLUSH_ON_RPC_ERROR_PARAM,
+    REPLAY_IDENTIFY_USER_PARAM,
+)
 
 
 class TestReplayOptions(TransactionCase):
@@ -12,11 +16,18 @@ class TestReplayOptions(TransactionCase):
         self.params = self.env["ir.config_parameter"].sudo()
         self.params.set_param(REPLAY_IDENTIFY_USER_PARAM, False)
         self.params.set_param(REPLAY_FLUSH_ON_RPC_ERROR_PARAM, False)
+        self.params.set_param(FEEDBACK_WIDGET_PARAM, False)
 
     def test_defaults_are_off(self):
         options = self.env["ir.http"].sentry_replay_options()
         self.assertEqual(
-            options, {"identify_user": False, "flush_on_rpc_error": False, "user": None}
+            options,
+            {
+                "identify_user": False,
+                "flush_on_rpc_error": False,
+                "feedback_widget": None,
+                "user": None,
+            },
         )
 
     def test_identify_user(self):
@@ -45,3 +56,13 @@ class TestReplayOptions(TransactionCase):
         self.assertFalse(
             self.env["ir.http"].sentry_replay_options()["flush_on_rpc_error"]
         )
+
+    def test_feedback_widget_tristate(self):
+        options = self.env["ir.http"].sentry_replay_options
+        self.assertIsNone(options()["feedback_widget"])
+        self.params.set_param(FEEDBACK_WIDGET_PARAM, "false")
+        self.assertIs(options()["feedback_widget"], False)
+        self.params.set_param(FEEDBACK_WIDGET_PARAM, "True")
+        self.assertIs(options()["feedback_widget"], True)
+        self.params.set_param(FEEDBACK_WIDGET_PARAM, "maybe")
+        self.assertIsNone(options()["feedback_widget"])

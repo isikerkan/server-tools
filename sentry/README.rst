@@ -502,6 +502,12 @@ The remaining settings are ``ir.config_parameter`` system parameters
 |                                       | through the propagated trace; no duplicate    |           |
 |                                       | browser error is created.                     |           |
 +---------------------------------------+-----------------------------------------------+-----------+
+| ``sentry.feedback_widget``            | ``false`` hides the Loader Script's "Report a | unset     |
+|                                       | Bug" user-feedback button, ``true`` forces it |           |
+|                                       | on. Unset: whatever the Loader Script is      |           |
+|                                       | configured to do in Sentry (Settings →        |           |
+|                                       | Projects → Loader Script).                    |           |
++---------------------------------------+-----------------------------------------------+-----------+
 
 Replay is a recording of the *user's* session: leave
 ``sentry.replay_flush_on_rpc_error`` off if you only care about frontend
@@ -703,6 +709,12 @@ Known issues / Roadmap
 
 Changelog
 =========
+
+18.0.2.5.0
+----------
+
+- ``sentry.feedback_widget`` system parameter: hide (or force) the
+  Loader Script's "Report a Bug" user-feedback button per instance.
 
 18.0.2.4.0 (2026-09-03)
 -----------------------
