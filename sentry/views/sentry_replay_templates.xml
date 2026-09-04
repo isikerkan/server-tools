@@ -49,13 +49,14 @@
                      user identification and the RPC-error flush flag
                      (see ir.http.sentry_replay_options). -->
                 <script
-                    t-if="sentry_replay_session_rate or sentry_replay_error_rate or sentry_replay_user or sentry_replay_options['flush_on_rpc_error']"
+                    t-if="sentry_replay_session_rate or sentry_replay_error_rate or sentry_replay_user or sentry_replay_options['flush_on_rpc_error'] or sentry_replay_options['feedback_widget'] is not None"
                     t-att-data-session-rate="sentry_replay_session_rate"
                     t-att-data-error-rate="sentry_replay_error_rate"
                     t-att-data-user-id="sentry_replay_user and sentry_replay_user['id']"
                     t-att-data-user-login="sentry_replay_user and sentry_replay_user['login']"
                     t-att-data-user-name="sentry_replay_user and sentry_replay_user['name']"
                     t-att-data-flush-on-rpc-error="sentry_replay_options['flush_on_rpc_error'] and '1'"
+                    t-att-data-feedback-widget="sentry_replay_options['feedback_widget'] is not None and ('1' if sentry_replay_options['feedback_widget'] else '0')"
                 >
 (function () {
     var data = document.currentScript.dataset;
@@ -63,10 +64,15 @@
     var errorRate = parseFloat(data.errorRate);
     window.sentryReplayFlushOnRpcError = data.flushOnRpcError === "1";
     window.sentryOnLoad = function () {
-        Sentry.init({
+        var options = {
             replaysSessionSampleRate: isNaN(sessionRate) ? 0.1 : sessionRate,
             replaysOnErrorSampleRate: isNaN(errorRate) ? 1.0 : errorRate,
-        });
+        };
+        if (data.feedbackWidget !== undefined) {
+            // overrides the Loader's own setting for the user-feedback button
+            options.autoInjectFeedback = data.feedbackWidget === "1";
+        }
+        Sentry.init(options);
         if (data.userId) {
             Sentry.setUser({
                 id: data.userId,
