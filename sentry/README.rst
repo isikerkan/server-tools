@@ -860,10 +860,13 @@ promote its widespread use.
 .. |maintainer-fernandahf| image:: https://github.com/fernandahf.png?size=40px
     :target: https://github.com/fernandahf
     :alt: fernandahf
+.. |maintainer-isikerkan| image:: https://github.com/isikerkan.png?size=40px
+    :target: https://github.com/isikerkan
+    :alt: isikerkan
 
 Current `maintainers <https://odoo-community.org/page/maintainer-role>`__:
 
-|maintainer-barsi| |maintainer-naglis| |maintainer-versada| |maintainer-moylop260| |maintainer-fernandahf| 
+|maintainer-barsi| |maintainer-naglis| |maintainer-versada| |maintainer-moylop260| |maintainer-fernandahf| |maintainer-isikerkan| 
 
 This module is part of the `OCA/server-tools <https://github.com/OCA/server-tools/tree/18.0/sentry>`_ project on GitHub.
 

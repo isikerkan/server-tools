@@ -11,7 +11,14 @@
     "Nicolas JEUDY,"
     "Odoo Community Association (OCA),"
     "Vauxoo",
-    "maintainers": ["barsi", "naglis", "versada", "moylop260", "fernandahf"],
+    "maintainers": [
+        "barsi",
+        "naglis",
+        "versada",
+        "moylop260",
+        "fernandahf",
+        "isikerkan",
+    ],
     "license": "AGPL-3",
     "application": False,
     "installable": True,
