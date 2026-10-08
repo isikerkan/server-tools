@@ -33,13 +33,7 @@
                         <field name="analysis_date" invisible="not analysis_date" />
                     </group>
                     <group string="Log">
-                        <field
-                            name="log"
-                            nolabel="1"
-                            widget="ace"
-                            options="{'mode': 'txt'}"
-                            colspan="2"
-                        />
+                        <field name="log" nolabel="1" widget="ace" colspan="2" />
                     </group>
                 </sheet>
             </form>
